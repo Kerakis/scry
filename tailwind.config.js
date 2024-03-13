@@ -4,10 +4,6 @@ export default {
   darkMode: 'selector',
   theme: {
     extend: {
-      borderColor: {
-        correct: 'green',
-        incorrect: 'red',
-      },
       colors: {
         'theme-color': '#00a2e8',
         'light-gray': '#f7f7f7',

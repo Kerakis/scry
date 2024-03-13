@@ -22,7 +22,6 @@
   let intervalId;
   let guessedCard = null;
   let isLoading = false;
-
   const year = new Date().getFullYear();
 
   async function fetchCards(format) {
@@ -156,7 +155,7 @@
         <div class="max-w-xs mx-auto">
           {#each formats as format}
             <button
-              class="border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap text-sm min-w-full"
+              class="border border-theme-color hover:border-dark-gray dark:hover:border-white duration-100 rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap text-sm min-w-full"
               on:click={() => selectFormat(format)}>{format}</button
             >
           {/each}
@@ -168,6 +167,11 @@
           src={correctCard.image_uris.art_crop}
           alt="Magic: The Gathering Card Art"
         />
+        {#if gameEnded}
+          <div class="text-center mt-2">
+            <h2>Congratulations! You made it to Level {level}</h2>
+          </div>
+        {/if}
         <div class="mx-auto max-w-lg flex flex-col mb-2 text-xs">
           {#each cards as card}
             <button
@@ -176,7 +180,9 @@
                 ? 'border-red-500'
                 : card.id === correctCard.id && gameEnded
                   ? 'border-dark-gray dark:border-white'
-                  : 'border-theme-color'}"
+                  : gameEnded
+                    ? 'border-theme-color'
+                    : 'border-theme-color hover:border-dark-gray dark:hover:border-white duration-100'}"
               on:click={() => guess(card)}
               disabled={gameEnded}>{card.name}</button
             >
@@ -184,37 +190,69 @@
         </div>
       </div>
     {/if}
-    <div class="grid grid-cols-2 grid-rows-2 content-between mt-4 md:mt-8">
-      <div class="justify-self-end">
-        <h2 class={timer <= 3 ? 'text-red-500' : ''}>
-          {timer === 0
-            ? "Time's Up!"
-            : `00:${timer.toString().padStart(2, '0')}`}
-        </h2>
-      </div>
-      <div class="justify-self-start">
-        <h2>Level: {level}</h2>
-      </div>
-      {#if gameEnded}
-        <div class="justify-self-end">
-          <button on:click={toggleHistory}>History</button>
+    <div class="w-full max-w-lg mx-auto">
+      {#if selectedFormat}
+        <div class="grid grid-cols-2 content-between mt-4 md:mt-8 mx-auto">
+          <button
+            class="w-3/4 border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-start {!gameEnded
+              ? ''
+              : 'hover:border-dark-gray dark:hover:border-white duration-100'}"
+            disabled={!gameEnded}
+            on:click={toggleHistory}
+          >
+            <span
+              class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
+            >
+              {!gameEnded ? `Level: ${level}` : `History`}
+            </span>
+          </button>
           {#if showHistory}
             <HistoryModal {history} on:close={toggleHistory} />
           {/if}
+          <button
+            class="w-3/4 border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-end {!gameEnded
+              ? ''
+              : 'hover:border-dark-gray dark:hover:border-white duration-100'} {timer <
+            4
+              ? 'text-red-500'
+              : ''}"
+            disabled
+          >
+            <span
+              class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
+            >
+              {timer === 0
+                ? `Time's Up!`
+                : `00:${timer.toString().padStart(2, '0')}`}
+            </span>
+          </button>
         </div>
-        <div class="justify-self-end">
-          <button on:click={reselectFormat}>Reselect Format</button>
-        </div>
-        <div class="justify-self-start">
-          <button on:click={restartGame}>Restart Game</button>
+      {/if}
+      {#if gameEnded}
+        <div class="grid grid-cols-2 content-between">
+          <button
+            class="w-3/4 border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-start hover:border-dark-gray dark:hover:border-white duration-100"
+            on:click={restartGame}
+          >
+            <span
+              class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
+            >
+              Restart Game
+            </span>
+          </button>
+          <button
+            class="w-3/4 justify-self-end border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap hover:border-dark-gray dark:hover:border-white duration-100"
+            on:click={reselectFormat}
+          >
+            <span
+              class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
+            >
+              Change Format
+            </span>
+          </button>
         </div>
       {/if}
     </div>
-    {#if gameEnded}
-      <div>
-        <h2>Congratulations! You made it to Level {level}</h2>
-      </div>
-    {/if}
     <footer
       class="flex-shrink-0 mt-8 text-sm text-dark-gray dark:text-light-gray text-center lg:fixed lg:m-1 lg:bottom-0 lg:right-1"
     >
