@@ -22,17 +22,30 @@
   let intervalId;
   let guessedCard = null;
   let isLoading = false;
+  let isLoadingNextCards = false;
+  let previousCorrectCards = [];
+  let nextCards = null;
+  let nextCorrectCard = null;
   const year = new Date().getFullYear();
 
   async function fetchCards(format) {
     isLoading = true;
-    let responses = await Promise.all(
-      Array(4)
-        .fill()
-        .map(() => fetch(`https://api.scryfall.com/cards/random?q=f:${format}`))
+    let fetchedCards;
+    do {
+      const responses = await Promise.all(
+        Array(4)
+          .fill()
+          .map(() =>
+            fetch(`https://api.scryfall.com/cards/random?q=f:${format}`)
+          )
+      );
+      fetchedCards = await Promise.all(responses.map((res) => res.json()));
+    } while (
+      new Set(fetchedCards.map((card) => card.id)).size < 4 ||
+      fetchedCards.some((card) => previousCorrectCards.includes(card.id))
     );
-    cards = await Promise.all(responses.map((res) => res.json()));
-    cards = cards.map((card) => {
+
+    cards = fetchedCards.map((card) => {
       if (card.layout === 'split') {
         return card;
       } else if (card.card_faces !== undefined) {
@@ -49,13 +62,70 @@
     });
     cards = shuffle(cards);
     correctCard = cards[Math.floor(Math.random() * cards.length)];
+    previousCorrectCards.push(correctCard.id);
+    // Ensure that the correct card is not repeated too often
+    if (previousCorrectCards.length > 100) {
+      previousCorrectCards.shift();
+    }
 
     isLoading = false;
+    startTimer();
+  }
+
+  async function fetchNextCards(format) {
+    isLoadingNextCards = true;
+    let fetchedCards;
+    do {
+      const responses = await Promise.all(
+        Array(4)
+          .fill()
+          .map(() =>
+            fetch(`https://api.scryfall.com/cards/random?q=f:${format}`)
+          )
+      );
+      fetchedCards = await Promise.all(responses.map((res) => res.json()));
+    } while (
+      new Set(fetchedCards.map((card) => card.id)).size < 4 ||
+      fetchedCards.some((card) => previousCorrectCards.includes(card.id))
+    );
+
+    nextCards = fetchedCards.map((card) => {
+      if (card.layout === 'split') {
+        return card;
+      } else if (card.card_faces !== undefined) {
+        return {
+          ...card,
+          image_uris: card.image_uris
+            ? card.image_uris
+            : card.card_faces[0].image_uris,
+          name: card.card_faces[0].name,
+        };
+      } else {
+        return card;
+      }
+    });
+    nextCards = shuffle(nextCards);
+    nextCorrectCard = nextCards[Math.floor(Math.random() * nextCards.length)];
+    previousCorrectCards.push(nextCorrectCard.id);
+    if (previousCorrectCards.length > 100) {
+      previousCorrectCards.shift();
+    }
+    isLoadingNextCards = false;
+  }
+
+  function startNextRound() {
+    isLoadingNextCards = true;
+    cards = nextCards;
+    correctCard = nextCorrectCard;
+    fetchNextCards(selectedFormat);
+    isLoadingNextCards = false;
   }
 
   function selectFormat(format) {
     selectedFormat = format;
-    fetchCards(format).then(startTimer);
+    fetchCards(format).then(() => {
+      fetchNextCards(format);
+    });
   }
 
   function startTimer() {
@@ -80,7 +150,11 @@
       });
       level++;
       timer = 10;
-      await fetchCards(selectedFormat);
+      // Wait until fetchNextCards has finished before starting the next round
+      while (isLoadingNextCards) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      startNextRound();
       startTimer();
     } else {
       endGame();
@@ -98,19 +172,22 @@
   }
 
   function restartGame() {
+    clearInterval(intervalId);
     gameEnded = false;
     level = 1;
     timer = 10;
     history = [];
+    previousCorrectCards = [];
     fetchCards(selectedFormat);
-    startTimer();
   }
 
   function reselectFormat() {
+    clearInterval(intervalId);
     gameEnded = false;
     level = 1;
     timer = 10;
     history = [];
+    previousCorrectCards = [];
     selectedFormat = null;
   }
 
@@ -124,6 +201,9 @@
 >
   <div class="flex flex-col flex-1 mx-2">
     <header>
+      <div class="flex justify-end p-4">
+        <DarkModeSwitch />
+      </div>
       <div class="m-8">
         <h1 class="md:text-5xl text-3xl text-center font-extrabold">
           Parallels
@@ -140,9 +220,6 @@
         Guess the card based on the art!
       </h3>
     </header>
-    <div class="flex justify-end p-4">
-      <DarkModeSwitch />
-    </div>
     {#if isLoading}
       <div class="flex justify-center items-center">
         <div
