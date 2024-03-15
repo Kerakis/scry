@@ -18,15 +18,17 @@
     timer = 10,
     gameEnded = false,
     history = [],
-    showHistory = false;
+    showHistory = false,
+    game,
+    gameOver;
   let cache = {};
   let fetchedPages = {};
   let totalPages = {};
+  let previouslyCorrectCards = {};
   let intervalId;
   let guessedCard = null;
   let isLoading = false;
   let isLoadingNextCards = false;
-  let previousCorrectCards = [];
   let preloadedCards = [];
   const year = new Date().getFullYear();
 
@@ -56,6 +58,7 @@
         preloadedCards.push(card);
       }
       startNextRound(false);
+      game.scrollIntoView({ behavior: 'smooth' });
       await fetchNextBatch(format); // Preload the next batch
       startTimer();
     } catch (error) {
@@ -138,12 +141,7 @@
         return;
       }
       correctCard = cards[Math.floor(Math.random() * cards.length)];
-    } while (previousCorrectCards.includes(correctCard.id));
-
-    previousCorrectCards.push(correctCard.id);
-    if (previousCorrectCards.length > 100) {
-      previousCorrectCards.shift();
-    }
+    } while (previouslyCorrectCards[selectedFormat]?.includes(correctCard.id));
 
     isLoading = false;
     if (shouldTimerStart) {
@@ -171,6 +169,13 @@
   async function guess(card) {
     guessedCard = card;
     if (correctCard !== null && card.id === correctCard.id) {
+      if (!previouslyCorrectCards[selectedFormat]) {
+        previouslyCorrectCards[selectedFormat] = [];
+      }
+      previouslyCorrectCards[selectedFormat].push(correctCard.id);
+      if (previouslyCorrectCards[selectedFormat].length > 100) {
+        previouslyCorrectCards[selectedFormat].shift();
+      }
       clearInterval(intervalId);
       history.push({
         level,
@@ -190,6 +195,9 @@
   }
 
   function endGame() {
+    if (gameOver) {
+      gameOver.scrollIntoView({ behavior: 'smooth' });
+    }
     history.push({
       level,
       card: correctCard,
@@ -205,7 +213,7 @@
     level = 1;
     timer = 10;
     history = [];
-    previousCorrectCards = [];
+    previouslyCorrectCards = {};
     fetchCards(selectedFormat);
   }
 
@@ -215,12 +223,20 @@
     level = 1;
     timer = 10;
     history = [];
-    previousCorrectCards = [];
+    previouslyCorrectCards = {};
     selectedFormat = null;
   }
 
   function toggleHistory() {
     showHistory = !showHistory;
+  }
+
+  $: {
+    if (showHistory) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
   }
 </script>
 
@@ -267,20 +283,22 @@
         </div>
       </div>
     {:else if correctCard}
-      <div class="mx-auto">
-        <img
-          src={correctCard.image_uris.art_crop}
-          alt="Magic: The Gathering Card Art"
-        />
+      <div class="flex flex-col items-center">
+        <div>
+          <img
+            src={correctCard.image_uris.art_crop}
+            alt="Magic: The Gathering Card Art"
+          />
+        </div>
         {#if gameEnded}
           <div class="text-center mt-2">
             <h2>Congratulations! You made it to Level {level}</h2>
           </div>
         {/if}
-        <div class="mx-auto max-w-lg flex flex-col mb-2 text-xs">
+        <div class="flex flex-col items-center w-full">
           {#each cards as card}
             <button
-              class="overflow-hidden border rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap {card.id ===
+              class="w-full max-w-lg text-xs overflow-hidden border rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap {card.id ===
                 guessedCard?.id && gameEnded
                 ? 'border-red-500'
                 : card.id === correctCard.id && gameEnded
@@ -297,7 +315,10 @@
     {/if}
     <div class="w-full max-w-lg mx-auto">
       {#if selectedFormat}
-        <div class="grid grid-cols-2 content-between mt-4 md:mt-8 mx-auto">
+        <div
+          bind:this={game}
+          class="grid grid-cols-2 content-between mt-4 md:mt-8 mx-auto"
+        >
           <button
             class="w-3/4 border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-start {!gameEnded
               ? ''
@@ -334,7 +355,7 @@
         </div>
       {/if}
       {#if gameEnded}
-        <div class="grid grid-cols-2 content-between">
+        <div bind:this={gameOver} class="grid grid-cols-2 content-between">
           <button
             class="w-3/4 border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-start hover:border-dark-gray dark:hover:border-white duration-100"
             on:click={restartGame}
