@@ -9,6 +9,9 @@ export default {
         'light-gray': '#f7f7f7',
         'dark-gray': '#222',
       },
+      fontFamily: {
+        montserrat: ['Montserrat', 'sans-serif'],
+      },
       fontSize: {
         xxs: '0.6rem',
         xs: '0.7rem',

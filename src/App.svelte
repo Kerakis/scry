@@ -79,27 +79,40 @@
   const year = new Date().getFullYear();
 
   async function preloadCards(format) {
-    const formatStore = db
-      .transaction('formats', 'readwrite')
-      .objectStore('formats');
-    const existingCards = (await formatStore.get(format)) || [];
+    const transaction = db.transaction(['cards', 'formats'], 'readwrite');
+    const cardStore = transaction.objectStore('cards');
+    const formatStore = transaction.objectStore('formats');
+    const formatCards = (await formatStore.get(format)) || [];
     const preloadedCards = [];
     while (preloadedCards.length < 4) {
-      const randomIndex = Math.floor(Math.random() * existingCards.length);
-      const card = existingCards.splice(randomIndex, 1)[0];
+      if (formatCards.length === 0) {
+        console.error('No more cards to preload');
+        break;
+      }
+      const randomIndex = Math.floor(Math.random() * formatCards.length);
+      const cardId = formatCards.splice(randomIndex, 1)[0];
+      const card = await cardStore.get(cardId);
       preloadedCards.push(card);
     }
-    // Save the updated cards back to IndexedDB
-    await formatStore.put(existingCards, format);
+    // Save the updated format cards back to IndexedDB
+    await formatStore.put(formatCards, format);
     return preloadedCards;
   }
 
   function mapCardData(card) {
+    if (!card) {
+      console.error('Card is undefined');
+      return;
+    }
     if (card.layout === 'split' || !card.card_faces) {
-      return card;
+      return {
+        id: card.id,
+        image_uris: card.image_uris,
+        name: card.name,
+      };
     } else {
       return {
-        ...card,
+        id: card.id,
         image_uris: card.image_uris
           ? card.image_uris
           : card.card_faces[0].image_uris,
@@ -122,25 +135,27 @@
         `https://api.scryfall.com/cards/search?q=f:${format}&order=usd&page=${randomPage}`
       );
       const randomData = await response.json();
-      totalCards[format] = randomData.total_cards; // Update total_cards
-      const cardStore = db
-        .transaction('cards', 'readwrite')
-        .objectStore('cards');
-      const existingCards = (await cardStore.getAll()) || [];
+      const transaction = db.transaction(['cards', 'formats'], 'readwrite');
+      const cardStore = transaction.objectStore('cards');
+      const formatStore = transaction.objectStore('formats');
+      const existingCards = (await cardStore.getAllKeys()) || [];
       const newCards = shuffle(randomData.data); // Shuffle the cards
-      const mergedCards = [...existingCards, ...newCards].reduce(
-        (acc, card) => {
-          acc[card.id] = card; // Overwrite existing card data
-          return acc;
-        },
-        {}
-      );
-      await cardStore.clear(); // Clear the object store
-      for (const card of Object.values(mergedCards)) {
-        await cardStore.put(card, card.id);
+      const formatCards = (await formatStore.get(format)) || [];
+      for (const card of newCards) {
+        if (!existingCards.includes(card.id)) {
+          await cardStore.put(card, card.id);
+        }
+        if (!formatCards.includes(card.id)) {
+          formatCards.push(card.id);
+        }
       }
+      await formatStore.put(formatCards, format);
       preloadedCards = await preloadCards(format);
-      preloadedCards = mapCardData(preloadedCards);
+      if (preloadedCards.length < 4) {
+        await fetchNextBatch(format);
+        preloadedCards = await preloadCards(format);
+      }
+      cards = preloadedCards.map(mapCardData);
       startNextRound();
       gameMounted.then(() => {
         game.scrollIntoView({ behavior: 'smooth' });
@@ -164,39 +179,45 @@
     );
     const randomData = await response.json();
     const cardStore = db.transaction('cards', 'readwrite').objectStore('cards');
-    const existingCards = (await cardStore.getAll()) || [];
+    const formatStore = db
+      .transaction('formats', 'readwrite')
+      .objectStore('formats');
+    const existingCards = (await cardStore.getAllKeys()) || [];
     const newCards = shuffle(randomData.data); // Shuffle the cards
-    const mergedCards = [...existingCards, ...newCards].reduce((acc, card) => {
-      acc[card.id] = card; // Overwrite existing card data
-      return acc;
-    }, {});
-    await cardStore.clear(); // Clear the object store
-    for (const card of Object.values(mergedCards)) {
-      await cardStore.put(card, card.id);
+    const formatCards = (await formatStore.get(format)) || [];
+    for (const card of newCards) {
+      if (!existingCards.includes(card.id)) {
+        await cardStore.put(card, card.id);
+      }
+      if (!formatCards.includes(card.id)) {
+        formatCards.push(card.id);
+      }
     }
+    await formatStore.put(formatCards, format);
     isLoadingNextCards = false;
   }
 
   async function startNextRound() {
-    const formatStore = db.transaction('formats').objectStore('formats');
-    const existingCards = (await formatStore.get(selectedFormat)) || [];
-    if (existingCards.length < 4) {
+    const transaction = db.transaction(['cards', 'formats'], 'readwrite');
+    const cardStore = transaction.objectStore('cards');
+    const formatStore = transaction.objectStore('formats');
+    const formatCards = (await formatStore.get(selectedFormat)) || [];
+    if (formatCards.length < 4) {
       await fetchNextBatch(selectedFormat);
+      preloadedCards = await preloadCards(selectedFormat);
+      cards = preloadedCards.map(mapCardData);
     }
-    // Move preloaded cards to current cards
-    cards = preloadedCards.map(mapCardData);
-
-    // Preload next round of cards
-    preloadedCards = (await preloadCards(selectedFormat)).map(mapCardData);
-
+    let guessOptions = [...cards]; // Create a copy of the cards array
     do {
-      if (cards.length === 0) {
+      if (guessOptions.length === 0) {
         console.error('No cards available');
         return;
       }
-      correctCard = cards[Math.floor(Math.random() * cards.length)];
-    } while (previouslyCorrectCards[selectedFormat]?.includes(correctCard.id));
-
+      const randomIndex = Math.floor(Math.random() * guessOptions.length);
+      const cardId = guessOptions.splice(randomIndex, 1)[0].id;
+      const card = await cardStore.get(cardId);
+      correctCard = mapCardData(card);
+    } while (!correctCard);
     isLoading = false;
   }
 
@@ -231,6 +252,7 @@
         level,
         card,
         cardImage: card.image_uris.border_crop,
+        scryfall_uri: card.scryfall_uri,
       });
       level++;
       timer = 10;
@@ -238,6 +260,8 @@
       while (isLoadingNextCards) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
+      preloadedCards = await preloadCards(selectedFormat);
+      cards = preloadedCards.map(mapCardData);
       startNextRound();
     } else {
       incorrectGuess = card;
@@ -297,11 +321,11 @@
 </script>
 
 <div
-  class="flex flex-col min-h-screen bg-light-gray dark:bg-dark-gray text-theme-color transition scroll-smooth"
+  class="flex flex-col min-h-screen bg-light-gray dark:bg-dark-gray font-montserrat text-theme-color transition scroll-smooth"
 >
   <div class="flex flex-col flex-1 mx-2">
     <header>
-      <div class="flex justify-end p-4">
+      <div class="absolute right-8 top-2">
         <DarkModeSwitch />
       </div>
       <div class="m-8">
