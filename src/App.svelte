@@ -1,7 +1,25 @@
 <script>
+  import { onMount } from 'svelte';
   import { shuffle } from 'lodash';
+  import { openDB } from 'idb';
   import HistoryModal from './HistoryModal.svelte';
   import DarkModeSwitch from './DarkModeSwitch.svelte';
+
+  // Initialize IndexedDB
+  let db;
+  async function initDB() {
+    db = await openDB('mtg-cache', 2, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains('formats')) {
+          db.createObjectStore('formats');
+        }
+        if (!db.objectStoreNames.contains('cards')) {
+          db.createObjectStore('cards');
+        }
+      },
+    });
+  }
+  initDB();
 
   // Game formats and their total card counts
   let formats = [
@@ -37,6 +55,11 @@
   // Game elements for scrolling
   let game;
   let gameOver;
+  let gameMounted;
+
+  onMount(() => {
+    gameMounted = Promise.resolve();
+  });
 
   // Card caching variables
   let cache = {};
@@ -55,32 +78,34 @@
   // Current year
   const year = new Date().getFullYear();
 
-  function preloadCards(format) {
+  async function preloadCards(format) {
+    const formatStore = db
+      .transaction('formats', 'readwrite')
+      .objectStore('formats');
+    const existingCards = (await formatStore.get(format)) || [];
     const preloadedCards = [];
     while (preloadedCards.length < 4) {
-      const randomIndex = Math.floor(Math.random() * cache[format].length);
-      const card = cache[format].splice(randomIndex, 1)[0];
+      const randomIndex = Math.floor(Math.random() * existingCards.length);
+      const card = existingCards.splice(randomIndex, 1)[0];
       preloadedCards.push(card);
     }
+    // Save the updated cards back to IndexedDB
+    await formatStore.put(existingCards, format);
     return preloadedCards;
   }
 
-  function mapCardData(cards) {
-    return cards.map((card) => {
-      if (card.layout === 'split') {
-        return card;
-      } else if (card.card_faces !== undefined) {
-        return {
-          ...card,
-          image_uris: card.image_uris
-            ? card.image_uris
-            : card.card_faces[0].image_uris,
-          name: card.card_faces[0].name,
-        };
-      } else {
-        return card;
-      }
-    });
+  function mapCardData(card) {
+    if (card.layout === 'split' || !card.card_faces) {
+      return card;
+    } else {
+      return {
+        ...card,
+        image_uris: card.image_uris
+          ? card.image_uris
+          : card.card_faces[0].image_uris,
+        name: card.card_faces[0].name,
+      };
+    }
   }
 
   async function fetchCards(format) {
@@ -93,17 +118,33 @@
         randomPage = Math.floor(Math.random() * totalPages[format]) + 1; // Choose a random page within valid range
       } while (fetchedPages[format].has(randomPage)); // Ensure the page hasn't been fetched before
       fetchedPages[format].add(randomPage);
-      const randomResponse = await fetch(
+      const response = await fetch(
         `https://api.scryfall.com/cards/search?q=f:${format}&order=usd&page=${randomPage}`
       );
-      const randomData = await randomResponse.json();
+      const randomData = await response.json();
       totalCards[format] = randomData.total_cards; // Update total_cards
-      cache[format] = shuffle(randomData.data); // Shuffle the cards
-      preloadedCards = preloadCards(format);
+      const cardStore = db
+        .transaction('cards', 'readwrite')
+        .objectStore('cards');
+      const existingCards = (await cardStore.getAll()) || [];
+      const newCards = shuffle(randomData.data); // Shuffle the cards
+      const mergedCards = [...existingCards, ...newCards].reduce(
+        (acc, card) => {
+          acc[card.id] = card; // Overwrite existing card data
+          return acc;
+        },
+        {}
+      );
+      await cardStore.clear(); // Clear the object store
+      for (const card of Object.values(mergedCards)) {
+        await cardStore.put(card, card.id);
+      }
+      preloadedCards = await preloadCards(format);
       preloadedCards = mapCardData(preloadedCards);
-      startNextRound(false);
-      game.scrollIntoView({ behavior: 'smooth' });
-      startTimer();
+      startNextRound();
+      gameMounted.then(() => {
+        game.scrollIntoView({ behavior: 'smooth' });
+      });
     } catch (error) {
       console.error('Error fetching cards:', error);
     } finally {
@@ -121,37 +162,32 @@
     const response = await fetch(
       `https://api.scryfall.com/cards/search?q=f:${format}&order=usd&page=${randomPage}`
     );
-    const data = await response.json();
-    cache[format] = cache[format].concat(shuffle(data.data)); // Shuffle the cards
+    const randomData = await response.json();
+    const cardStore = db.transaction('cards', 'readwrite').objectStore('cards');
+    const existingCards = (await cardStore.getAll()) || [];
+    const newCards = shuffle(randomData.data); // Shuffle the cards
+    const mergedCards = [...existingCards, ...newCards].reduce((acc, card) => {
+      acc[card.id] = card; // Overwrite existing card data
+      return acc;
+    }, {});
+    await cardStore.clear(); // Clear the object store
+    for (const card of Object.values(mergedCards)) {
+      await cardStore.put(card, card.id);
+    }
     isLoadingNextCards = false;
   }
 
-  function startNextRound(shouldTimerStart = true) {
-    console.log(cache[selectedFormat].length);
-    if (cache[selectedFormat].length < 20) {
-      fetchNextBatch(selectedFormat);
+  async function startNextRound() {
+    const formatStore = db.transaction('formats').objectStore('formats');
+    const existingCards = (await formatStore.get(selectedFormat)) || [];
+    if (existingCards.length < 4) {
+      await fetchNextBatch(selectedFormat);
     }
     // Move preloaded cards to current cards
-    cards = preloadedCards;
+    cards = preloadedCards.map(mapCardData);
 
-    cards = cards.map((card) => {
-      if (card.layout === 'split') {
-        return card;
-      } else if (card.card_faces !== undefined) {
-        return {
-          ...card,
-          image_uris: card.image_uris
-            ? card.image_uris
-            : card.card_faces[0].image_uris,
-          name: card.card_faces[0].name,
-        };
-      } else {
-        return card;
-      }
-    });
-
-    preloadedCards = preloadCards(selectedFormat);
-    preloadedCards = mapCardData(preloadedCards);
+    // Preload next round of cards
+    preloadedCards = (await preloadCards(selectedFormat)).map(mapCardData);
 
     do {
       if (cards.length === 0) {
@@ -162,9 +198,6 @@
     } while (previouslyCorrectCards[selectedFormat]?.includes(correctCard.id));
 
     isLoading = false;
-    if (shouldTimerStart) {
-      startTimer();
-    }
   }
 
   function selectFormat(format) {
@@ -201,7 +234,7 @@
       });
       level++;
       timer = 10;
-      // Wait until fetchNextCards has finished before starting the next round
+      // Wait until fetchNextBatch has finished before starting the next round
       while (isLoadingNextCards) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
@@ -213,9 +246,10 @@
   }
 
   function endGame() {
-    if (gameOver) {
+    gameEnded = true;
+    gameMounted.then(() => {
       gameOver.scrollIntoView({ behavior: 'smooth' });
-    }
+    });
     history.push({
       level,
       card: correctCard,
@@ -226,6 +260,7 @@
   }
 
   function restartGame() {
+    correctCard = null; // Prevent the previous artwork from showing
     clearInterval(intervalId);
     gameEnded = false;
     level = 1;
@@ -237,6 +272,7 @@
   }
 
   function reselectFormat() {
+    correctCard = null; // Prevent the previous artwork from showing
     clearInterval(intervalId);
     gameEnded = false;
     level = 1;
@@ -307,7 +343,8 @@
         <div>
           <img
             src={correctCard.image_uris.art_crop}
-            alt="Magic: The Gathering Card Art"
+            alt={correctCard.name}
+            on:load={startTimer}
           />
         </div>
         {#if gameEnded}
