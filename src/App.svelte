@@ -62,7 +62,6 @@
   });
 
   // Card caching variables
-  let cache = {};
   let fetchedPages = {};
   let totalPages = {};
   let previouslyCorrectCards = {};
@@ -109,6 +108,7 @@
         id: card.id,
         image_uris: card.image_uris,
         name: card.name,
+        scryfall_uri: card.scryfall_uri,
       };
     } else {
       return {
@@ -117,6 +117,7 @@
           ? card.image_uris
           : card.card_faces[0].image_uris,
         name: card.card_faces[0].name,
+        scryfall_uri: card.scryfall_uri,
       };
     }
   }
