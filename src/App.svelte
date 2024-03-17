@@ -3,6 +3,7 @@
   import HistoryModal from './HistoryModal.svelte';
   import DarkModeSwitch from './DarkModeSwitch.svelte';
 
+  // Game formats and their total card counts
   let formats = [
     'Standard',
     'Pauper',
@@ -11,55 +12,97 @@
     'Legacy',
     'Vintage',
   ];
-  let selectedFormat,
-    cards = [],
-    correctCard,
-    level = 1,
-    timer = 10,
-    gameEnded = false,
-    history = [],
-    showHistory = false,
-    game,
-    gameOver;
+  let totalCards = {
+    Standard: 3037,
+    Pauper: 9502,
+    Pioneer: 11101,
+    Modern: 18402,
+    Legacy: 26619,
+    Vintage: 26679,
+  };
+
+  // Game state variables
+  let selectedFormat;
+  let cards = [];
+  let correctCard;
+  let level = 1;
+  let timer = 10;
+  let gameEnded = false;
+  let incorrectGuess = null;
+
+  // Game history variables
+  let history = [];
+  let showHistory = false;
+
+  // Game elements for scrolling
+  let game;
+  let gameOver;
+
+  // Card caching variables
   let cache = {};
   let fetchedPages = {};
   let totalPages = {};
   let previouslyCorrectCards = {};
-  let intervalId;
-  let guessedCard = null;
+  let preloadedCards = [];
+
+  // Loading state variables
   let isLoading = false;
   let isLoadingNextCards = false;
-  let preloadedCards = [];
+
+  // Timer variable
+  let intervalId;
+
+  // Current year
   const year = new Date().getFullYear();
+
+  function preloadCards(format) {
+    const preloadedCards = [];
+    while (preloadedCards.length < 4) {
+      const randomIndex = Math.floor(Math.random() * cache[format].length);
+      const card = cache[format].splice(randomIndex, 1)[0];
+      preloadedCards.push(card);
+    }
+    return preloadedCards;
+  }
+
+  function mapCardData(cards) {
+    return cards.map((card) => {
+      if (card.layout === 'split') {
+        return card;
+      } else if (card.card_faces !== undefined) {
+        return {
+          ...card,
+          image_uris: card.image_uris
+            ? card.image_uris
+            : card.card_faces[0].image_uris,
+          name: card.card_faces[0].name,
+        };
+      } else {
+        return card;
+      }
+    });
+  }
 
   async function fetchCards(format) {
     isLoading = true;
     try {
-      const response = await fetch(
-        `https://api.scryfall.com/cards/search?q=f:${format}&order=usd&page=1`
-      );
-      const data = await response.json();
-      totalPages[format] = Math.ceil(data.total_cards / 175); // Calculate total pages
-      const randomPage = Math.floor(Math.random() * totalPages[format]) + 1; // Choose a random page within valid range
-      fetchedPages[format] = [randomPage];
+      totalPages[format] = Math.ceil(totalCards[format] / 175); // Calculate total pages
+      fetchedPages[format] = new Set();
+      let randomPage;
+      do {
+        randomPage = Math.floor(Math.random() * totalPages[format]) + 1; // Choose a random page within valid range
+      } while (fetchedPages[format].has(randomPage)); // Ensure the page hasn't been fetched before
+      fetchedPages[format].add(randomPage);
       const randomResponse = await fetch(
         `https://api.scryfall.com/cards/search?q=f:${format}&order=usd&page=${randomPage}`
       );
       const randomData = await randomResponse.json();
-      await new Promise((resolve) => {
-        cache[format] = shuffle(randomData.data); // Shuffle the cards
-        resolve();
-      });
-      // Preload cards for the next round
-      preloadedCards = [];
-      while (preloadedCards.length < 4) {
-        const randomIndex = Math.floor(Math.random() * cache[format].length);
-        const card = cache[format].splice(randomIndex, 1)[0];
-        preloadedCards.push(card);
-      }
+      totalCards[format] = randomData.total_cards; // Update total_cards
+      cache[format] = shuffle(randomData.data); // Shuffle the cards
+      preloadedCards = preloadCards(format);
+      preloadedCards = mapCardData(preloadedCards);
       startNextRound(false);
       game.scrollIntoView({ behavior: 'smooth' });
-      await fetchNextBatch(format); // Preload the next batch
       startTimer();
     } catch (error) {
       console.error('Error fetching cards:', error);
@@ -70,23 +113,21 @@
 
   async function fetchNextBatch(format) {
     isLoadingNextCards = true;
-    let page;
+    let randomPage;
     do {
-      page = Math.floor(Math.random() * totalPages[format]) + 1; // Choose a random page within valid range
-    } while (fetchedPages[format].includes(page)); // Ensure the page hasn't been fetched before
-    fetchedPages[format].push(page);
+      randomPage = Math.floor(Math.random() * totalPages[format]) + 1; // Choose a random page within valid range
+    } while (fetchedPages[format].has(randomPage)); // Ensure the page hasn't been fetched before
+    fetchedPages[format].add(randomPage);
     const response = await fetch(
-      `https://api.scryfall.com/cards/search?q=f:${format}&order=usd&page=${page}`
+      `https://api.scryfall.com/cards/search?q=f:${format}&order=usd&page=${randomPage}`
     );
     const data = await response.json();
-    await new Promise((resolve) => {
-      cache[format] = cache[format].concat(shuffle(data.data)); // Shuffle the cards
-      resolve();
-    });
+    cache[format] = cache[format].concat(shuffle(data.data)); // Shuffle the cards
     isLoadingNextCards = false;
   }
 
   function startNextRound(shouldTimerStart = true) {
+    console.log(cache[selectedFormat].length);
     if (cache[selectedFormat].length < 20) {
       fetchNextBatch(selectedFormat);
     }
@@ -109,31 +150,8 @@
       }
     });
 
-    // Preload cards for the next round
-    preloadedCards = [];
-    while (preloadedCards.length < 4) {
-      const randomIndex = Math.floor(
-        Math.random() * cache[selectedFormat].length
-      );
-      const card = cache[selectedFormat].splice(randomIndex, 1)[0];
-      preloadedCards.push(card);
-    }
-
-    preloadedCards = preloadedCards.map((card) => {
-      if (card.layout === 'split') {
-        return card;
-      } else if (card.card_faces !== undefined) {
-        return {
-          ...card,
-          image_uris: card.image_uris
-            ? card.image_uris
-            : card.card_faces[0].image_uris,
-          name: card.card_faces[0].name,
-        };
-      } else {
-        return card;
-      }
-    });
+    preloadedCards = preloadCards(selectedFormat);
+    preloadedCards = mapCardData(preloadedCards);
 
     do {
       if (cards.length === 0) {
@@ -167,7 +185,6 @@
   }
 
   async function guess(card) {
-    guessedCard = card;
     if (correctCard !== null && card.id === correctCard.id) {
       if (!previouslyCorrectCards[selectedFormat]) {
         previouslyCorrectCards[selectedFormat] = [];
@@ -190,6 +207,7 @@
       }
       startNextRound();
     } else {
+      incorrectGuess = card;
       endGame();
     }
   }
@@ -214,6 +232,7 @@
     timer = 10;
     history = [];
     previouslyCorrectCards = {};
+    incorrectGuess = null;
     fetchCards(selectedFormat);
   }
 
@@ -224,6 +243,7 @@
     timer = 10;
     history = [];
     previouslyCorrectCards = {};
+    incorrectGuess = null;
     selectedFormat = null;
   }
 
@@ -299,7 +319,7 @@
           {#each cards as card}
             <button
               class="w-full max-w-lg text-xs overflow-hidden border rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap {card.id ===
-                guessedCard?.id && gameEnded
+                incorrectGuess?.id && gameEnded
                 ? 'border-red-500'
                 : card.id === correctCard.id && gameEnded
                   ? 'border-dark-gray dark:border-white'
