@@ -158,13 +158,13 @@
       }
       cards = preloadedCards.map(mapCardData);
       startNextRound();
-      gameMounted.then(() => {
-        game.scrollIntoView({ behavior: 'smooth' });
-      });
     } catch (error) {
       console.error('Error fetching cards:', error);
     } finally {
       isLoading = false;
+      setTimeout(() => {
+        game.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     }
   }
 
