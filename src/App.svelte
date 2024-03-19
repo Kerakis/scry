@@ -47,6 +47,7 @@
   let timer = 10;
   let gameEnded = false;
   let incorrectGuess = null;
+  let highestLevel;
 
   // Game history variables
   let history = [];
@@ -282,6 +283,15 @@
     });
     clearInterval(intervalId);
     gameEnded = true;
+
+    // Check if the current level is higher than the stored high score
+    const highScoreKey = `highScore-${selectedFormat}`;
+    const storedHighScore = localStorage.getItem(highScoreKey);
+    if (!storedHighScore || level > parseInt(storedHighScore, 10)) {
+      // Update the high score in localStorage
+      localStorage.setItem(highScoreKey, level.toString());
+    }
+    console.log(highestLevel);
   }
 
   function restartGame() {
@@ -310,6 +320,13 @@
 
   function toggleHistory() {
     showHistory = !showHistory;
+  }
+
+  // When the game ends, update highestLevel
+  $: if (gameEnded) {
+    const highScoreKey = `highScore-${selectedFormat}`;
+    const storedHighScore = localStorage.getItem(highScoreKey);
+    highestLevel = storedHighScore ? parseInt(storedHighScore, 10) - 1 : 0;
   }
 
   $: {
@@ -374,7 +391,14 @@
         </div>
         {#if gameEnded}
           <div class="text-center mt-2">
-            <h2>Congratulations! You made it to Level {level}</h2>
+            {#if highestLevel > 0}
+              <h2>
+                Congratulations! You made it to Level {level}. Your highest
+                completed level for {selectedFormat} is {highestLevel}.
+              </h2>
+            {:else}
+              <h2>Congratulations! You made it to Level {level}.</h2>
+            {/if}
           </div>
         {/if}
         <div class="flex flex-col items-center w-full">
