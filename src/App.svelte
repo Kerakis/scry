@@ -291,7 +291,6 @@
       // Update the high score in localStorage
       localStorage.setItem(highScoreKey, level.toString());
     }
-    console.log(highestLevel);
   }
 
   function restartGame() {
