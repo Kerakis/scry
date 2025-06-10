@@ -36,15 +36,15 @@
     onclick={(e) => e.stopPropagation()}
   >
     <div
-      class="flex flex-col relative bg-clip-padding bg-light-gray dark:bg-dark-gray rounded xs:rounded-none w-full xs:h-full md:w-[50rem] max-h-full overflow-hidden"
+      class="flex flex-col relative bg-clip-padding bg-light-gray dark:bg-dark-gray rounded-sm xs:rounded-none w-full xs:h-full md:w-200 max-h-full overflow-hidden"
     >
       <div
-        class="flex flex-shrink-0 border-b border-b-dark-gray dark:border-b-white w-full p-4 justify-between items-center text-xl font-bold text-theme-color"
+        class="flex shrink-0 border-b border-b-dark-gray dark:border-b-white w-full p-4 justify-between items-center text-xl font-bold text-theme-color"
       >
         <h3>History</h3>
         <button
           onclick={close}
-          class="flex justify-center flex-row text-light-gray dark:text-dark-gray bg-theme-color bg-opacity-60 rounded cursor-pointer hover:bg-opacity-80 duration-100 w-7 h-7"
+          class="flex justify-center flex-row text-light-gray dark:text-dark-gray bg-theme-color bg-opacity-60 rounded-sm cursor-pointer hover:bg-opacity-80 duration-100 w-7 h-7"
           >X</button
         >
       </div>
@@ -74,17 +74,17 @@
               </div>
             </div>
             {#if index < history.length - 1}
-              <hr class="bg-theme-color border-0 h-[1px] m-7" />
+              <hr class="bg-theme-color border-0 h-px m-7" />
             {/if}
           </div>
         {/each}
       </div>
       <div
-        class="flex flex-wrap flex-shrink-0 justify-end items-center p-3 border-t border-t-dark-gray dark:border-t-white"
+        class="flex flex-wrap shrink-0 justify-end items-center p-3 border-t border-t-dark-gray dark:border-t-white"
       >
         <button
           onclick={close}
-          class="py-[7px] px-5 flex justify-center flex-row border border-theme-color text-theme-color text-xs uppercase font-extrabold whitespace-nowrap rounded hover:border-dark-gray dark:hover:border-white duration-100 w-26 h-8"
+          class="py-[7px] px-5 flex justify-center flex-row border border-theme-color text-theme-color text-xs uppercase font-extrabold whitespace-nowrap rounded-sm hover:border-dark-gray dark:hover:border-white duration-100 w-26 h-8"
           >Close</button
         >
       </div>

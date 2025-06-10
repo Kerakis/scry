@@ -375,7 +375,7 @@
         <div class="max-w-xs mx-auto">
           {#each formats as format}
             <button
-              class="border border-theme-color hover:border-dark-gray dark:hover:border-white duration-100 rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap text-sm min-w-full"
+              class="border border-theme-color hover:border-dark-gray dark:hover:border-white duration-100 rounded-sm h-8 mt-4 uppercase font-extrabold whitespace-nowrap text-sm min-w-full"
               onclick={() => selectFormat(format)}>{format}</button
             >
           {/each}
@@ -464,7 +464,7 @@
       {#if gameEnded}
         <div bind:this={gameOver} class="grid grid-cols-2 content-between">
           <button
-            class="w-3/4 border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-start hover:border-dark-gray dark:hover:border-white duration-100"
+            class="w-3/4 border border-theme-color rounded-sm h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-start hover:border-dark-gray dark:hover:border-white duration-100"
             onclick={restartGame}
           >
             <span
@@ -474,7 +474,7 @@
             </span>
           </button>
           <button
-            class="w-3/4 justify-self-end border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap hover:border-dark-gray dark:hover:border-white duration-100"
+            class="w-3/4 justify-self-end border border-theme-color rounded-sm h-8 mt-4 uppercase font-extrabold whitespace-nowrap hover:border-dark-gray dark:hover:border-white duration-100"
             onclick={reselectFormat}
           >
             <span
@@ -487,7 +487,7 @@
       {/if}
     </div>
     <footer
-      class="flex-shrink-0 mt-8 text-sm text-dark-gray dark:text-light-gray text-center lg:fixed lg:m-1 lg:bottom-0 lg:right-1"
+      class="shrink-0 mt-8 text-sm text-dark-gray dark:text-light-gray text-center lg:fixed lg:m-1 lg:bottom-0 lg:right-1"
     >
       <p>
         Made with <span class="font-sans">&#9749;</span> by
