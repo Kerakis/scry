@@ -1,14 +1,15 @@
 <script>
-  let darkMode =
+  let darkMode = $state(
     localStorage.theme === 'dark' ||
-    (!('theme' in localStorage) &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches);
+      (!('theme' in localStorage) &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches)
+  );
 
-  $: {
+  $effect(() => {
     localStorage.theme = darkMode ? 'dark' : 'light';
     document.documentElement.classList.remove(darkMode ? 'light' : 'dark');
     document.documentElement.classList.add(darkMode ? 'dark' : 'light');
-  }
+  });
 </script>
 
 <label class="flex items-center cursor-pointer">
