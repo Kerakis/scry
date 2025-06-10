@@ -40,22 +40,22 @@
   };
 
   // Game state variables
-  let selectedFormat;
-  let cards = [];
-  let correctCard;
-  let level = 1;
-  let timer = 10;
-  let gameEnded = false;
-  let incorrectGuess = null;
-  let highestLevel;
+  let selectedFormat = $state();
+  let cards = $state([]);
+  let correctCard = $state();
+  let level = $state(1);
+  let timer = $state(10);
+  let gameEnded = $state(false);
+  let incorrectGuess = $state(null);
+  let highestLevel = $state();
 
   // Game history variables
-  let history = [];
-  let showHistory = false;
+  let history = $state([]);
+  let showHistory = $state(false);
 
   // Game elements for scrolling
-  let game;
-  let gameOver;
+  let game = $state();
+  let gameOver = $state();
   let gameMounted;
 
   onMount(() => {
@@ -69,8 +69,8 @@
   let preloadedCards = [];
 
   // Loading state variables
-  let isLoading = false;
-  let isLoadingNextCards = false;
+  let isLoading = $state(false);
+  let isLoadingNextCards = $state(false);
 
   // Timer variable
   let intervalId;
@@ -322,19 +322,21 @@
   }
 
   // When the game ends, update highestLevel
-  $: if (gameEnded) {
-    const highScoreKey = `highScore-${selectedFormat}`;
-    const storedHighScore = localStorage.getItem(highScoreKey);
-    highestLevel = storedHighScore ? parseInt(storedHighScore, 10) - 1 : 0;
-  }
+  $effect(() => {
+    if (gameEnded) {
+      const highScoreKey = `highScore-${selectedFormat}`;
+      const storedHighScore = localStorage.getItem(highScoreKey);
+      highestLevel = storedHighScore ? parseInt(storedHighScore, 10) - 1 : 0;
+    }
+  });
 
-  $: {
+  $effect(() => {
     if (showHistory) {
       document.body.classList.add('overflow-hidden');
     } else {
       document.body.classList.remove('overflow-hidden');
     }
-  }
+  });
 </script>
 
 <div
@@ -373,8 +375,8 @@
         <div class="max-w-xs mx-auto">
           {#each formats as format}
             <button
-              class="border border-theme-color hover:border-dark-gray dark:hover:border-white duration-100 rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap text-sm min-w-full"
-              on:click={() => selectFormat(format)}>{format}</button
+              class="border border-theme-color hover:border-dark-gray dark:hover:border-white duration-100 rounded-sm h-8 mt-4 uppercase font-extrabold whitespace-nowrap text-sm min-w-full"
+              onclick={() => selectFormat(format)}>{format}</button
             >
           {/each}
         </div>
@@ -385,7 +387,7 @@
           <img
             src={correctCard.image_uris.art_crop}
             alt={correctCard.name}
-            on:load={startTimer}
+            onload={startTimer}
           />
         </div>
         {#if gameEnded}
@@ -411,7 +413,7 @@
                   : gameEnded
                     ? 'border-theme-color'
                     : 'border-theme-color hover:border-dark-gray dark:hover:border-white duration-100'}"
-              on:click={() => guess(card)}
+              onclick={() => guess(card)}
               disabled={gameEnded}>{card.name}</button
             >
           {/each}
@@ -429,7 +431,7 @@
               ? ''
               : 'hover:border-dark-gray dark:hover:border-white duration-100'}"
             disabled={!gameEnded}
-            on:click={toggleHistory}
+            onclick={toggleHistory}
           >
             <span
               class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
@@ -462,8 +464,8 @@
       {#if gameEnded}
         <div bind:this={gameOver} class="grid grid-cols-2 content-between">
           <button
-            class="w-3/4 border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-start hover:border-dark-gray dark:hover:border-white duration-100"
-            on:click={restartGame}
+            class="w-3/4 border border-theme-color rounded-sm h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-start hover:border-dark-gray dark:hover:border-white duration-100"
+            onclick={restartGame}
           >
             <span
               class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
@@ -472,8 +474,8 @@
             </span>
           </button>
           <button
-            class="w-3/4 justify-self-end border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap hover:border-dark-gray dark:hover:border-white duration-100"
-            on:click={reselectFormat}
+            class="w-3/4 justify-self-end border border-theme-color rounded-sm h-8 mt-4 uppercase font-extrabold whitespace-nowrap hover:border-dark-gray dark:hover:border-white duration-100"
+            onclick={reselectFormat}
           >
             <span
               class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
@@ -485,7 +487,7 @@
       {/if}
     </div>
     <footer
-      class="flex-shrink-0 mt-8 text-sm text-dark-gray dark:text-light-gray text-center lg:fixed lg:m-1 lg:bottom-0 lg:right-1"
+      class="shrink-0 mt-8 text-sm text-dark-gray dark:text-light-gray text-center lg:fixed lg:m-1 lg:bottom-0 lg:right-1"
     >
       <p>
         Made with <span class="font-sans">&#9749;</span> by
