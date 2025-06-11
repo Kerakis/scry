@@ -21,7 +21,7 @@
   }
   initDB();
 
-  // Game formats and their total card counts
+  // Game formats
   let formats = [
     'Standard',
     'Pauper',
@@ -30,14 +30,16 @@
     'Legacy',
     'Vintage',
   ];
-  let totalCards = {
-    Standard: 3037,
-    Pauper: 9502,
-    Pioneer: 11101,
-    Modern: 18402,
-    Legacy: 26619,
-    Vintage: 26679,
-  };
+
+  // Will be loaded from static data - make reactive
+  let totalCards = $state({
+    Standard: 0,
+    Pauper: 0,
+    Pioneer: 0,
+    Modern: 0,
+    Legacy: 0,
+    Vintage: 0,
+  });
 
   // Game state variables
   let selectedFormat = $state();
@@ -58,19 +60,12 @@
   let gameOver = $state();
   let gameMounted;
 
-  onMount(() => {
-    gameMounted = Promise.resolve();
-  });
-
   // Card caching variables
-  let fetchedPages = {};
-  let totalPages = {};
   let previouslyCorrectCards = {};
-  let preloadedCards = [];
+  let allFormatCards = [];
 
   // Loading state variables
   let isLoading = $state(false);
-  let isLoadingNextCards = $state(false);
 
   // Timer variable
   let intervalId;
@@ -78,32 +73,48 @@
   // Current year
   const year = new Date().getFullYear();
 
-  async function preloadCards(format) {
-    const transaction = db.transaction(['cards', 'formats'], 'readwrite');
-    const cardStore = transaction.objectStore('cards');
-    const formatStore = transaction.objectStore('formats');
-    const formatCards = (await formatStore.get(format)) || [];
-    const preloadedCards = [];
-    while (preloadedCards.length < 4) {
-      if (formatCards.length === 0) {
-        console.error('No more cards to preload');
-        break;
+  // Load static card data and update total cards
+  async function loadStaticCardData() {
+    try {
+      console.log('📥 Loading static card data...');
+      const response = await fetch('./data/cards.json');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      allFormatCards = data.cards;
+      totalCards = data.formatCounts; // This now works with reactive state
+
+      console.log(`✅ Loaded ${allFormatCards.length} total cards`);
+      console.log('📊 Format counts:', totalCards);
+
+      // Cache all cards in IndexedDB for offline use
+      const transaction = db.transaction(['cards'], 'readwrite');
+      const cardStore = transaction.objectStore('cards');
+
+      for (const card of allFormatCards) {
+        await cardStore.put(card, card.id);
       }
-      const randomIndex = Math.floor(Math.random() * formatCards.length);
-      const cardId = formatCards.splice(randomIndex, 1)[0];
-      const card = await cardStore.get(cardId);
-      preloadedCards.push(card);
+
+      console.log('💾 Cards cached in IndexedDB');
+      return true;
+    } catch (error) {
+      console.warn('⚠️ Failed to load static card data:', error.message);
+      return false;
     }
-    // Save the updated format cards back to IndexedDB
-    await formatStore.put(formatCards, format);
-    return preloadedCards;
   }
 
+  // Get cards for a specific format
+  function getFormatCards(format) {
+    return allFormatCards.filter((card) => card.formats.includes(format));
+  }
+
+  // Map card data to the format expected by the game
   function mapCardData(card) {
     if (!card) {
       console.error('Card is undefined');
       return;
     }
+
     if (card.layout === 'split' || !card.card_faces) {
       return {
         id: card.id,
@@ -123,110 +134,69 @@
     }
   }
 
-  async function fetchCards(format) {
-    isLoading = true;
-    try {
-      totalPages[format] = Math.ceil(totalCards[format] / 175); // Calculate total pages
-      fetchedPages[format] = new Set();
-      let randomPage;
-      do {
-        randomPage = Math.floor(Math.random() * totalPages[format]) + 1; // Choose a random page within valid range
-      } while (fetchedPages[format].has(randomPage)); // Ensure the page hasn't been fetched before
-      fetchedPages[format].add(randomPage);
-      const response = await fetch(
-        `https://api.scryfall.com/cards/search?q=f:${format}&order=usd&page=${randomPage}`
-      );
-      const randomData = await response.json();
-      const transaction = db.transaction(['cards', 'formats'], 'readwrite');
-      const cardStore = transaction.objectStore('cards');
-      const formatStore = transaction.objectStore('formats');
-      const existingCards = (await cardStore.getAllKeys()) || [];
-      const newCards = shuffle(randomData.data); // Shuffle the cards
-      const formatCards = (await formatStore.get(format)) || [];
-      for (const card of newCards) {
-        if (!existingCards.includes(card.id)) {
-          await cardStore.put(card, card.id);
-        }
-        if (!formatCards.includes(card.id)) {
-          formatCards.push(card.id);
-        }
-      }
-      await formatStore.put(formatCards, format);
-      preloadedCards = await preloadCards(format);
-      if (preloadedCards.length < 4) {
-        await fetchNextBatch(format);
-        preloadedCards = await preloadCards(format);
-      }
-      cards = preloadedCards.map(mapCardData);
-      startNextRound();
-    } catch (error) {
-      console.error('Error fetching cards:', error);
-    } finally {
-      isLoading = false;
-      setTimeout(() => {
-        game.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+  // Select 4 random cards for the current round
+  function selectRandomCards(format) {
+    const formatCards = getFormatCards(format);
+
+    // Filter out previously correct cards to avoid repeats
+    const availableCards = formatCards.filter((card) => {
+      if (!previouslyCorrectCards[format]) return true;
+      return !previouslyCorrectCards[format].includes(card.id);
+    });
+
+    // If we've used too many cards, reset the exclusion list
+    if (availableCards.length < 4) {
+      console.log('🔄 Resetting previously correct cards for variety');
+      previouslyCorrectCards[format] = [];
+      return shuffle(formatCards).slice(0, 4);
     }
+
+    return shuffle(availableCards).slice(0, 4);
   }
 
-  async function fetchNextBatch(format) {
-    isLoadingNextCards = true;
-    let randomPage;
-    do {
-      randomPage = Math.floor(Math.random() * totalPages[format]) + 1; // Choose a random page within valid range
-    } while (fetchedPages[format].has(randomPage)); // Ensure the page hasn't been fetched before
-    fetchedPages[format].add(randomPage);
-    const response = await fetch(
-      `https://api.scryfall.com/cards/search?q=f:${format}&order=usd&page=${randomPage}`
-    );
-    const randomData = await response.json();
-    const cardStore = db.transaction('cards', 'readwrite').objectStore('cards');
-    const formatStore = db
-      .transaction('formats', 'readwrite')
-      .objectStore('formats');
-    const existingCards = (await cardStore.getAllKeys()) || [];
-    const newCards = shuffle(randomData.data); // Shuffle the cards
-    const formatCards = (await formatStore.get(format)) || [];
-    for (const card of newCards) {
-      if (!existingCards.includes(card.id)) {
-        await cardStore.put(card, card.id);
-      }
-      if (!formatCards.includes(card.id)) {
-        formatCards.push(card.id);
-      }
-    }
-    await formatStore.put(formatCards, format);
-    isLoadingNextCards = false;
-  }
+  // Start a new round with fresh cards
+  function startNextRound() {
+    const selectedCards = selectRandomCards(selectedFormat);
+    cards = selectedCards.map(mapCardData);
 
-  async function startNextRound() {
-    const transaction = db.transaction(['cards', 'formats'], 'readwrite');
-    const cardStore = transaction.objectStore('cards');
-    const formatStore = transaction.objectStore('formats');
-    const formatCards = (await formatStore.get(selectedFormat)) || [];
-    if (formatCards.length < 4) {
-      await fetchNextBatch(selectedFormat);
-      preloadedCards = await preloadCards(selectedFormat);
-      cards = preloadedCards.map(mapCardData);
-    }
-    let guessOptions = [...cards]; // Create a copy of the cards array
-    do {
-      if (guessOptions.length === 0) {
-        console.error('No cards available');
-        return;
-      }
-      const randomIndex = Math.floor(Math.random() * guessOptions.length);
-      const cardId = guessOptions.splice(randomIndex, 1)[0].id;
-      const card = await cardStore.get(cardId);
-      correctCard = mapCardData(card);
-    } while (!correctCard);
+    // Select one card as the correct answer
+    const randomIndex = Math.floor(Math.random() * cards.length);
+    correctCard = cards[randomIndex];
+
     isLoading = false;
   }
 
-  function selectFormat(format) {
+  // Select format and start the game
+  async function selectFormat(format) {
     selectedFormat = format;
-    preloadedCards = [];
-    fetchCards(format);
+    isLoading = true;
+
+    // Ensure static data is loaded
+    if (allFormatCards.length === 0) {
+      const dataLoaded = await loadStaticCardData();
+      if (!dataLoaded) {
+        console.error('❌ Could not load card data');
+        isLoading = false;
+        return;
+      }
+    }
+
+    const formatCards = getFormatCards(format);
+    console.log(
+      `🎮 Starting ${format} with ${formatCards.length} available cards`
+    );
+
+    if (formatCards.length < 4) {
+      console.error(`❌ Not enough cards for ${format}: ${formatCards.length}`);
+      isLoading = false;
+      return;
+    }
+
+    startNextRound();
+
+    setTimeout(() => {
+      game?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   }
 
   function startTimer() {
@@ -242,13 +212,17 @@
 
   async function guess(card) {
     if (correctCard !== null && card.id === correctCard.id) {
+      // Correct guess
       if (!previouslyCorrectCards[selectedFormat]) {
         previouslyCorrectCards[selectedFormat] = [];
       }
       previouslyCorrectCards[selectedFormat].push(correctCard.id);
+
+      // Keep only the last 100 correct cards to maintain variety
       if (previouslyCorrectCards[selectedFormat].length > 100) {
         previouslyCorrectCards[selectedFormat].shift();
       }
+
       clearInterval(intervalId);
       history.push({
         level,
@@ -256,16 +230,12 @@
         cardImage: card.image_uris.border_crop,
         scryfall_uri: card.scryfall_uri,
       });
+
       level++;
       timer = 10;
-      // Wait until fetchNextBatch has finished before starting the next round
-      while (isLoadingNextCards) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      preloadedCards = await preloadCards(selectedFormat);
-      cards = preloadedCards.map(mapCardData);
       startNextRound();
     } else {
+      // Incorrect guess
       incorrectGuess = card;
       endGame();
     }
@@ -280,33 +250,32 @@
       level,
       card: correctCard,
       cardImage: correctCard.image_uris.border_crop,
+      scryfall_uri: correctCard.scryfall_uri,
     });
     clearInterval(intervalId);
-    gameEnded = true;
 
     // Check if the current level is higher than the stored high score
     const highScoreKey = `highScore-${selectedFormat}`;
     const storedHighScore = localStorage.getItem(highScoreKey);
     if (!storedHighScore || level > parseInt(storedHighScore, 10)) {
-      // Update the high score in localStorage
       localStorage.setItem(highScoreKey, level.toString());
     }
   }
 
   function restartGame() {
-    correctCard = null; // Prevent the previous artwork from showing
+    correctCard = null;
     clearInterval(intervalId);
     gameEnded = false;
     level = 1;
     timer = 10;
     history = [];
-    previouslyCorrectCards = {};
     incorrectGuess = null;
-    fetchCards(selectedFormat);
+    // Don't reset previouslyCorrectCards to maintain variety
+    selectFormat(selectedFormat);
   }
 
   function reselectFormat() {
-    correctCard = null; // Prevent the previous artwork from showing
+    correctCard = null;
     clearInterval(intervalId);
     gameEnded = false;
     level = 1;
@@ -320,6 +289,16 @@
   function toggleHistory() {
     showHistory = !showHistory;
   }
+
+  function closeHistory() {
+    showHistory = false;
+  }
+
+  // Initialize the app
+  onMount(async () => {
+    gameMounted = Promise.resolve();
+    await loadStaticCardData();
+  });
 
   // When the game ends, update highestLevel
   $effect(() => {
@@ -339,6 +318,7 @@
   });
 </script>
 
+<!-- Keep the existing markup - it doesn't need to change -->
 <div
   class="flex flex-col min-h-screen bg-light-gray dark:bg-dark-gray font-montserrat text-theme-color transition scroll-smooth"
 >
@@ -348,9 +328,7 @@
         <DarkModeSwitch />
       </div>
       <div class="m-8">
-        <h1 class="md:text-5xl text-3xl text-center font-extrabold">
-          Parallels
-        </h1>
+        <h1 class="md:text-5xl text-3xl text-center font-extrabold">Scry</h1>
         <h2
           class="md:text-2xl text-xl text-dark-gray dark:text-white text-center md:mt-3 mt-2 mb-4"
         >
@@ -363,7 +341,7 @@
         Guess the card based on the art!
       </h3>
     </header>
-    {#if isLoading || isLoadingNextCards}
+    {#if isLoading}
       <div class="flex justify-center items-center">
         <div
           class="w-16 h-16 border-t-4 border-blue-500 rounded-full animate-spin"
@@ -376,8 +354,10 @@
           {#each formats as format}
             <button
               class="border border-theme-color hover:border-dark-gray dark:hover:border-white duration-100 rounded-sm h-8 mt-4 uppercase font-extrabold whitespace-nowrap text-sm min-w-full"
-              onclick={() => selectFormat(format)}>{format}</button
+              onclick={() => selectFormat(format)}
             >
+              {format}
+            </button>
           {/each}
         </div>
       </div>
@@ -440,7 +420,7 @@
             </span>
           </button>
           {#if showHistory}
-            <HistoryModal {history} on:close={toggleHistory} />
+            <HistoryModal {history} onclose={closeHistory} />
           {/if}
           <button
             class="w-3/4 border border-theme-color rounded h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-end {!gameEnded
