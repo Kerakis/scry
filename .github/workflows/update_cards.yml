@@ -1,0 +1,43 @@
+name: Update Card Data
+
+on:
+  schedule:
+    # Run on the 1st and 15th of every month at 2 AM UTC
+    - cron: '0 2 1,15 * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  update-cards:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create data directory
+        run: mkdir -p public/data
+
+      - name: Run card data update script
+        run: node scripts/update-card-data.js
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add public/data/*.json
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto-update card data - $(date)"
+            git push
+          else
+            echo "No changes to commit"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
