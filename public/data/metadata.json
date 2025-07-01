@@ -1,8 +1,8 @@
 {
-  "lastUpdated": "2025-06-15T02:42:04.342Z",
-  "bulkDataUpdated": "2025-06-14T21:08:16.174+00:00",
+  "lastUpdated": "2025-07-01T02:46:10.377Z",
+  "bulkDataUpdated": "2025-06-30T21:06:15.044+00:00",
   "formatCounts": {
-    "Standard": 4095,
+    "Standard": 4088,
     "Pauper": 10079,
     "Pioneer": 12945,
     "Modern": 20584,
@@ -10,5 +10,5 @@
     "Vintage": 29033
   },
   "totalCards": 29051,
-  "fileSize": 13551702
+  "fileSize": 13551625
 }
