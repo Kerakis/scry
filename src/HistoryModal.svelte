@@ -114,7 +114,7 @@
         <button
           type="button"
           onclick={close}
-          class="py-[7px] px-5 flex justify-center flex-row border border-theme-color text-theme-color text-xs uppercase font-extrabold whitespace-nowrap rounded-sm hover:border-dark-gray dark:hover:border-white duration-100 w-26 h-8"
+          class="py-1.75 px-5 flex justify-center flex-row border border-theme-color text-theme-color text-xs uppercase font-extrabold whitespace-nowrap rounded-sm hover:border-dark-gray dark:hover:border-white duration-100 w-26 h-8"
         >
           Close
         </button>
