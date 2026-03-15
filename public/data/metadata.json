@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-03-01T03:07:29.984Z",
-  "bulkDataUpdated": "2026-02-28T22:03:21.434+00:00",
+  "lastUpdated": "2026-03-15T03:08:07.472Z",
+  "bulkDataUpdated": "2026-03-14T21:05:04.460+00:00",
   "formatCounts": {
     "Standard": 4168,
     "Pauper": 10499,
@@ -10,5 +10,5 @@
     "Vintage": 30515
   },
   "totalCards": 30533,
-  "fileSize": 14248858
+  "fileSize": 14248861
 }
