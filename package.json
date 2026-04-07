@@ -17,7 +17,7 @@
     "@types/lodash": "^4.14.202",
     "postcss": "^8.4.35",
     "svelte": "^5.53.6",
-    "tailwindcss": "^4.1.8",
+    "tailwindcss": "^4.2.2",
     "vite": "^7.2.4"
   },
   "dependencies": {
