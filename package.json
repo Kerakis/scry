@@ -15,7 +15,7 @@
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/lodash": "^4.14.202",
-    "postcss": "^8.4.35",
+    "postcss": "^8.5.9",
     "svelte": "^5.53.6",
     "tailwindcss": "^4.1.8",
     "vite": "^8.0.7"
