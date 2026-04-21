@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
-    "@tailwindcss/postcss": "^4.2.2",
+    "@tailwindcss/postcss": "^4.2.4",
     "@types/lodash": "^4.14.202",
     "postcss": "^8.4.35",
     "svelte": "^5.53.6",
