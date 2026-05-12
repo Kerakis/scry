@@ -18,7 +18,7 @@
     "postcss": "^8.5.14",
     "svelte": "^5.55.5",
     "tailwindcss": "^4.1.8",
-    "vite": "^8.0.11"
+    "vite": "^8.0.12"
   },
   "dependencies": {
     "idb": "^8.0.0",
