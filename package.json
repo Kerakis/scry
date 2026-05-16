@@ -12,7 +12,7 @@
     "prebuild": "npm run update-cards"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^7.1.0",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/lodash": "^4.14.202",
     "postcss": "^8.5.14",
