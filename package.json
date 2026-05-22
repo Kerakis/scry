@@ -16,7 +16,7 @@
     "@tailwindcss/postcss": "^4.3.0",
     "@types/lodash": "^4.14.202",
     "postcss": "^8.5.15",
-    "svelte": "^5.55.7",
+    "svelte": "^5.55.9",
     "tailwindcss": "^4.1.8",
     "vite": "^8.0.13"
   },
