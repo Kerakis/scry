@@ -7,8 +7,8 @@
 
   $effect(() => {
     localStorage.theme = darkMode ? 'dark' : 'light';
-    document.documentElement.classList.remove(darkMode ? 'light' : 'dark');
-    document.documentElement.classList.add(darkMode ? 'dark' : 'light');
+    document.documentElement.classList.toggle('dark', darkMode);
+    document.documentElement.classList.toggle('light', !darkMode);
   });
 </script>
 

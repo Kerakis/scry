@@ -1,41 +1,35 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
 
-  // Use callback props instead of createEventDispatcher
   let { history = [], onclose } = $props();
+  const reversedHistory = $derived([...history].reverse());
 
   function close() {
     onclose?.();
   }
 
   function handleKeydown(event) {
-    if (event.key === 'Escape') {
-      close();
-    }
+    if (event.key === 'Escape') close();
   }
 
   function handleBackdropClick(event) {
-    // Only close if clicking the backdrop itself
-    if (event.target === event.currentTarget) {
-      close();
-    }
+    if (event.target === event.currentTarget) close();
   }
 
   function handleBackdropKeydown(event) {
-    // Handle keyboard navigation for backdrop
-    if (event.key === 'Enter' || event.key === ' ') {
-      if (event.target === event.currentTarget) {
-        event.preventDefault();
-        close();
-      }
+    if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) {
+      event.preventDefault();
+      close();
     }
   }
 
   onMount(() => {
+    document.body.classList.add('overflow-hidden');
     window.addEventListener('keydown', handleKeydown);
   });
 
   onDestroy(() => {
+    document.body.classList.remove('overflow-hidden');
     window.removeEventListener('keydown', handleKeydown);
   });
 </script>
@@ -50,7 +44,7 @@
   onclick={handleBackdropClick}
   onkeydown={handleBackdropKeydown}
 >
-  <!-- Modal content container - removed all event handlers -->
+  <!-- Modal content container -->
   <div
     class="flex items-center relative transform-none w-screen max-w-none h-full min-h-[calc(100%-1rem)] m-0 sm:mt-7 sm:max-w-lg sm:w-auto sm:m-auto sm:min-h-[calc(100%-3.5rem)] sm:h-[calc(100%-3.5rem)] lg:max-w-3xl"
   >
@@ -77,16 +71,12 @@
       <div
         class="flex flex-col flex-auto items-center relative p-4 w-auto xs:overflow-y-auto overflow-y-auto"
       >
-        {#each history
-          .slice()
-          .reverse() as item, index (item.level + '-' + index)}
+        {#each reversedHistory as item, index (item.level + '-' + index)}
           <div class="w-full">
             <div>
               <div class="text-theme-color w-full mb-5">
                 <h3>
-                  Level: <span class="text-dark-gray dark:text-white"
-                    >{item.level}</span
-                  >
+                  Level: <span class="text-dark-gray dark:text-white">{item.level}</span>
                 </h3>
               </div>
               <div class="flex flex-col items-center">
@@ -100,7 +90,7 @@
                 </a>
               </div>
             </div>
-            {#if index < history.length - 1}
+            {#if index < reversedHistory.length - 1}
               <hr class="bg-theme-color border-0 h-px m-7" />
             {/if}
           </div>

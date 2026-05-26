@@ -1,7 +1,7 @@
 {
   "name": "parallels-svelte",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,7 +17,7 @@
     "@types/lodash": "^4.14.202",
     "postcss": "^8.5.15",
     "svelte": "^5.55.9",
-    "tailwindcss": "^4.1.8",
+    "tailwindcss": "^4.2.1",
     "vite": "^8.0.13"
   },
   "dependencies": {
