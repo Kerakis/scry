@@ -44,7 +44,15 @@ async function fetchWithRetry(url, retries = 3) {
 
 async function getBulkDataInfo() {
   console.log('🔍 Fetching bulk data information...');
-  const response = await fetchWithRetry('https://api.scryfall.com/bulk-data');
+
+  const response = await fetchWithRetry('https://api.scryfall.com/bulk-data', {
+    method: 'GET',
+    headers: {
+      'User-Agent': 'Scry/1.0 (rlupchurch3@gmail.com)',
+      Accept: 'application/json',
+    },
+  });
+
   const data = await response.json();
 
   const oracleCards = data.data.find((item) => item.type === 'oracle_cards');
@@ -65,7 +73,7 @@ async function getCachedBulkData(bulkInfo) {
 
   const cacheFileName = `oracle-cards-${bulkInfo.updated_at.replace(
     /[:.]/g,
-    '-'
+    '-',
   )}.json`;
   const cacheFilePath = path.join(CACHE_DIR, cacheFileName);
 
@@ -126,7 +134,7 @@ async function downloadBulkData(bulkInfo) {
   // Cache the data for future use
   const cacheFileName = `oracle-cards-${bulkInfo.updated_at.replace(
     /[:.]/g,
-    '-'
+    '-',
   )}.json`;
   const cacheFilePath = path.join(CACHE_DIR, cacheFileName);
 
@@ -226,7 +234,7 @@ function logUnusableArtCards(allCards) {
             has_card_faces: !!(card.card_faces && card.card_faces.length > 0),
             card_faces_with_images: card.card_faces
               ? card.card_faces.filter(
-                  (face) => face.image_uris && face.image_uris.art_crop
+                  (face) => face.image_uris && face.image_uris.art_crop,
                 ).length
               : 0,
             scryfall_uri: card.scryfall_uri,
@@ -250,12 +258,12 @@ function logUnusableArtCards(allCards) {
 
   // Log summary to console
   console.log(
-    `📊 Found ${unusableArtCards.length} cards with unusable art that are legal in formats`
+    `📊 Found ${unusableArtCards.length} cards with unusable art that are legal in formats`,
   );
   for (const format of FORMATS) {
     if (unusableByFormat[format].length > 0) {
       console.log(
-        `📈 ${format}: ${unusableByFormat[format].length} unusable cards`
+        `📈 ${format}: ${unusableByFormat[format].length} unusable cards`,
       );
     }
   }
@@ -324,7 +332,7 @@ async function saveUnusableArtReport(unusableArtCards, unusableByFormat) {
     summary: {
       totalCards: unusableArtCards.length,
       formatBreakdown: Object.fromEntries(
-        FORMATS.map((format) => [format, unusableByFormat[format].length])
+        FORMATS.map((format) => [format, unusableByFormat[format].length]),
       ),
       layoutBreakdown: layoutCounts,
     },
@@ -365,7 +373,7 @@ async function processFormatData(allCards) {
 
     if (processedCount % 5000 === 0) {
       process.stdout.write(
-        `\r📊 Processed ${processedCount}/${allCards.length} cards...`
+        `\r📊 Processed ${processedCount}/${allCards.length} cards...`,
       );
     }
 
@@ -400,7 +408,7 @@ async function processFormatData(allCards) {
   }
 
   console.log(
-    `📋 Summary: ${unusableArtCards.length} legal cards excluded due to unusable art`
+    `📋 Summary: ${unusableArtCards.length} legal cards excluded due to unusable art`,
   );
 
   return { allFormatCards, formatCounts };
@@ -439,7 +447,7 @@ async function saveOptimizedFile(allFormatCards, formatCounts, bulkInfo) {
 
   await fs.writeFile(
     path.join(DATA_DIR, 'metadata.json'),
-    JSON.stringify(metadata, null, 2)
+    JSON.stringify(metadata, null, 2),
   );
 
   console.log(`📋 Metadata saved`);
