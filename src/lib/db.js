@@ -1,8 +1,9 @@
 import { openDB } from 'idb';
 
+/** @type {Awaited<ReturnType<typeof openDB>> | undefined} */
 let db;
 
-export async function getDB() {
+async function getDB() {
   if (!db) {
     db = await openDB('mtg-cache', 2, {
       upgrade(db) {
@@ -18,6 +19,7 @@ export async function getDB() {
   return db;
 }
 
+/** @param {any[]} allCards */
 export async function cacheCards(allCards) {
   const database = await getDB();
   const tx = database.transaction(['cards'], 'readwrite');

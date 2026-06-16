@@ -20,6 +20,7 @@
     }
   });
 
+  /** @param {string} format */
   async function handleSelectFormat(format) {
     await gameState.selectFormat(format);
     await tick();

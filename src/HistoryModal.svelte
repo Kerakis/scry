@@ -8,14 +8,17 @@
     onclose?.();
   }
 
+  /** @param {KeyboardEvent} event */
   function handleKeydown(event) {
     if (event.key === 'Escape') close();
   }
 
+  /** @param {MouseEvent} event */
   function handleBackdropClick(event) {
     if (event.target === event.currentTarget) close();
   }
 
+  /** @param {KeyboardEvent} event */
   function handleBackdropKeydown(event) {
     if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) {
       event.preventDefault();

@@ -2,6 +2,9 @@
   import { onMount, onDestroy } from 'svelte';
   import { gameState } from './gameState.svelte.js';
 
+  /** @typedef {import('./cardUtils.js').Card} Card */
+
+  /** @param {Card} card */
   function cardButtonClass(card) {
     if (!gameState.gameEnded) {
       return 'border-theme-color hover:border-dark-gray dark:hover:border-white duration-100';
@@ -11,6 +14,7 @@
     return 'border-theme-color';
   }
 
+  /** @param {KeyboardEvent} event */
   function handleKeydown(event) {
     if (gameState.gameEnded) return;
     const index = parseInt(event.key) - 1;
@@ -26,8 +30,8 @@
 <div class="flex flex-col items-center">
   <div>
     <img
-      src={gameState.correctCard.image_uris.art_crop}
-      alt={gameState.correctCard.name}
+      src={gameState.correctCard?.image_uris?.art_crop}
+      alt={gameState.correctCard?.name}
       onload={() => gameState.startTimer()}
     />
   </div>

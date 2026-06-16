@@ -1,7 +1,13 @@
 import { shuffle } from 'lodash';
 import { FORMATS } from './constants.js';
 
+/**
+ * @typedef {{ id: string, image_uris?: Record<string, string>, name: string, scryfall_uri: string }} Card
+ */
+
+/** @param {any[]} allCards */
 export function buildFormatCardMap(allCards) {
+  /** @type {Record<string, any[]>} */
   const map = {};
   for (const format of FORMATS) {
     map[format] = allCards.filter((card) => card.formats.includes(format));
@@ -9,6 +15,7 @@ export function buildFormatCardMap(allCards) {
   return map;
 }
 
+/** @param {any} card */
 export function mapCardData(card) {
   if (!card) {
     console.error('Card is undefined');
@@ -23,6 +30,10 @@ export function mapCardData(card) {
   };
 }
 
+/**
+ * @param {any[]} formatCards
+ * @param {Set<string>} previouslyCorrect
+ */
 export function selectRandomCards(formatCards, previouslyCorrect) {
   const available = formatCards.filter((card) => !previouslyCorrect.has(card.id));
   if (available.length < 4) {
