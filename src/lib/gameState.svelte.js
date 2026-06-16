@@ -1,10 +1,12 @@
-import { FORMATS, INITIAL_TIMER, MAX_PREVIOUSLY_CORRECT } from './constants.js';
+import { FORMATS, INITIAL_TIMER, MAX_PREVIOUSLY_CORRECT, ERRORS } from './constants.js';
 import { buildFormatCardMap, mapCardData, selectRandomCards } from './cardUtils.js';
 import { cacheCards } from './db.js';
 
 /** @typedef {import('./cardUtils.js').Card} Card */
 
-class GameState {
+export const GAME_STATE_KEY = Symbol('gameState');
+
+export class GameState {
   /** @type {string | null} */
   selectedFormat = $state(null);
   /** @type {Card[]} */
@@ -21,6 +23,8 @@ class GameState {
   history = $state([]);
   showHistory = $state(false);
   isLoading = $state(false);
+  /** @type {string | null} */
+  loadError = $state(null);
   totalCards = $state(Object.fromEntries(FORMATS.map((f) => [f, 0])));
 
   /** @type {Record<string, any[]>} */
@@ -41,6 +45,7 @@ class GameState {
       return true;
     } catch (error) {
       console.warn('Failed to load card data:', error instanceof Error ? error.message : String(error));
+      this.loadError = ERRORS.LOAD_FAILED;
       return false;
     }
   }
@@ -63,6 +68,7 @@ class GameState {
 
   /** @param {string} format */
   async selectFormat(format) {
+    this.loadError = null;
     this.selectedFormat = format;
     this.isLoading = true;
     if (Object.keys(this.#formatCardMap).length === 0) {
@@ -74,6 +80,7 @@ class GameState {
     }
     if ((this.#formatCardMap[format] ?? []).length < 4) {
       this.isLoading = false;
+      this.loadError = ERRORS.NOT_ENOUGH_CARDS;
       return;
     }
     this.#startNextRound();
@@ -165,6 +172,7 @@ class GameState {
     this.#previouslyCorrect = {};
     this.incorrectGuess = null;
     this.selectedFormat = null;
+    this.loadError = null;
   }
 
   toggleHistory() {

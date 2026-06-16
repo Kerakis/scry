@@ -56,6 +56,16 @@
           class="w-16 h-16 border-t-4 border-blue-500 rounded-full animate-spin"
         ></div>
       </div>
+    {:else if gameState.loadError}
+      <div class="flex flex-col items-center mt-20 gap-4 text-center">
+        <p class="text-red-500 font-semibold">{gameState.loadError}</p>
+        <button
+          class="border border-theme-color rounded-sm h-8 px-6 uppercase font-extrabold text-sm hover:border-dark-gray dark:hover:border-white duration-100"
+          onclick={() => gameState.reselectFormat()}
+        >
+          Try Again
+        </button>
+      </div>
     {:else if !gameState.selectedFormat}
       <FormatSelector onselect={handleSelectFormat} />
     {:else if gameState.correctCard}
