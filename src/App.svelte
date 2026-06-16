@@ -60,7 +60,7 @@
         ></div>
       </div>
     {:else if gameState.loadError}
-      <div class="flex flex-col items-center mt-20 gap-4 text-center">
+      <div class="flex flex-col items-center mt-20 gap-4 text-center" aria-live="assertive">
         <p class="text-red-500 font-semibold">{gameState.loadError}</p>
         <button
           class="border border-theme-color rounded-sm h-8 px-6 uppercase font-extrabold text-sm hover:border-dark-gray dark:hover:border-white duration-100"
@@ -75,7 +75,7 @@
       <GameBoard />
     {/if}
     <div class="w-full max-w-lg mx-auto">
-      {#if gameState.selectedFormat}
+      {#if gameState.selectedFormat && !gameState.loadError}
         <div
           bind:this={game}
           class="grid grid-cols-2 content-between mt-4 md:mt-8 mx-auto"
