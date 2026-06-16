@@ -37,7 +37,6 @@
   });
 </script>
 
-<!-- Modal backdrop with proper ARIA attributes -->
 <div
   class="bg-black bg-opacity-70 fixed top-0 left-0 overflow-x-hidden overflow-y-auto block w-full h-full"
   role="dialog"
@@ -47,7 +46,6 @@
   onclick={handleBackdropClick}
   onkeydown={handleBackdropKeydown}
 >
-  <!-- Modal content container -->
   <div
     class="flex items-center relative transform-none w-screen max-w-none h-full min-h-[calc(100%-1rem)] m-0 sm:mt-7 sm:max-w-lg sm:w-auto sm:m-auto sm:min-h-[calc(100%-3.5rem)] sm:h-[calc(100%-3.5rem)] lg:max-w-3xl"
   >
@@ -55,7 +53,6 @@
       class="flex flex-col relative bg-clip-padding bg-light-gray dark:bg-dark-gray rounded-sm xs:rounded-none w-full xs:h-full md:w-200 max-h-full overflow-hidden"
       role="document"
     >
-      <!-- Modal header -->
       <div
         class="flex shrink-0 border-b border-b-dark-gray dark:border-b-white w-full p-4 justify-between items-center text-xl font-bold text-theme-color"
       >
@@ -70,7 +67,6 @@
         </button>
       </div>
 
-      <!-- Modal body -->
       <div
         class="flex flex-col flex-auto items-center relative p-4 w-auto xs:overflow-y-auto overflow-y-auto"
       >
@@ -100,7 +96,6 @@
         {/each}
       </div>
 
-      <!-- Modal footer -->
       <div
         class="flex flex-wrap shrink-0 justify-end items-center p-3 border-t border-t-dark-gray dark:border-t-white"
       >

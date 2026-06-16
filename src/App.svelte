@@ -3,8 +3,8 @@
   import { gameState } from './lib/gameState.svelte.js';
   import FormatSelector from './lib/FormatSelector.svelte';
   import GameBoard from './lib/GameBoard.svelte';
-  import HistoryModal from './HistoryModal.svelte';
-  import DarkModeSwitch from './DarkModeSwitch.svelte';
+  import HistoryModal from './lib/HistoryModal.svelte';
+  import DarkModeSwitch from './lib/DarkModeSwitch.svelte';
 
   let game = $state();
   let gameOver = $state();
