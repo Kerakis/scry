@@ -4,13 +4,36 @@
   let { history = [], onclose } = $props();
   const reversedHistory = $derived([...history].reverse());
 
+  /** @type {HTMLElement | null} */
+  let modalEl = null;
+  /** @type {Element | null} */
+  let triggerEl = null;
+
+  const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
   function close() {
     onclose?.();
   }
 
   /** @param {KeyboardEvent} event */
   function handleKeydown(event) {
-    if (event.key === 'Escape') close();
+    if (event.key === 'Escape') {
+      close();
+      return;
+    }
+    if (event.key === 'Tab') {
+      const focusable = /** @type {HTMLElement[]} */ ([...(modalEl?.querySelectorAll(FOCUSABLE) ?? [])]);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
   }
 
   /** @param {MouseEvent} event */
@@ -27,6 +50,9 @@
   }
 
   onMount(() => {
+    triggerEl = document.activeElement;
+    const firstFocusable = /** @type {HTMLElement | null} */ (modalEl?.querySelector(FOCUSABLE));
+    firstFocusable?.focus();
     document.body.classList.add('overflow-hidden');
     window.addEventListener('keydown', handleKeydown);
   });
@@ -34,11 +60,12 @@
   onDestroy(() => {
     document.body.classList.remove('overflow-hidden');
     window.removeEventListener('keydown', handleKeydown);
+    /** @type {HTMLElement | null} */ (triggerEl)?.focus();
   });
 </script>
 
-<!-- Modal backdrop with proper ARIA attributes -->
 <div
+  bind:this={modalEl}
   class="bg-black bg-opacity-70 fixed top-0 left-0 overflow-x-hidden overflow-y-auto block w-full h-full"
   role="dialog"
   aria-modal="true"
@@ -47,7 +74,6 @@
   onclick={handleBackdropClick}
   onkeydown={handleBackdropKeydown}
 >
-  <!-- Modal content container -->
   <div
     class="flex items-center relative transform-none w-screen max-w-none h-full min-h-[calc(100%-1rem)] m-0 sm:mt-7 sm:max-w-lg sm:w-auto sm:m-auto sm:min-h-[calc(100%-3.5rem)] sm:h-[calc(100%-3.5rem)] lg:max-w-3xl"
   >
@@ -55,7 +81,6 @@
       class="flex flex-col relative bg-clip-padding bg-light-gray dark:bg-dark-gray rounded-sm xs:rounded-none w-full xs:h-full md:w-200 max-h-full overflow-hidden"
       role="document"
     >
-      <!-- Modal header -->
       <div
         class="flex shrink-0 border-b border-b-dark-gray dark:border-b-white w-full p-4 justify-between items-center text-xl font-bold text-theme-color"
       >
@@ -70,7 +95,6 @@
         </button>
       </div>
 
-      <!-- Modal body -->
       <div
         class="flex flex-col flex-auto items-center relative p-4 w-auto xs:overflow-y-auto overflow-y-auto"
       >
@@ -100,7 +124,6 @@
         {/each}
       </div>
 
-      <!-- Modal footer -->
       <div
         class="flex flex-wrap shrink-0 justify-end items-center p-3 border-t border-t-dark-gray dark:border-t-white"
       >
