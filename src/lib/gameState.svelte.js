@@ -1,6 +1,6 @@
 import { FORMATS, INITIAL_TIMER, MAX_PREVIOUSLY_CORRECT, ERRORS } from './constants.js';
 import { buildFormatCardMap, mapCardData, selectRandomCards } from './cardUtils.js';
-import { cacheCards } from './db.js';
+import { getCachedCardData, setCachedCardData } from './db.js';
 
 /** @typedef {import('./cardUtils.js').Card} Card */
 
@@ -36,12 +36,27 @@ export class GameState {
 
   async #loadData() {
     try {
+      const metaResponse = await fetch('./data/metadata.json');
+      if (!metaResponse.ok) throw new Error(`HTTP ${metaResponse.status}`);
+      const meta = await metaResponse.json();
+
+      const cached = await getCachedCardData();
+      if (cached?.bulkDataUpdated === meta.bulkDataUpdated) {
+        this.#formatCardMap = buildFormatCardMap(cached.cards);
+        this.totalCards = cached.formatCounts;
+        return true;
+      }
+
       const response = await fetch('./data/cards.json');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       this.#formatCardMap = buildFormatCardMap(data.cards);
       this.totalCards = data.formatCounts;
-      await cacheCards(data.cards);
+      await setCachedCardData({
+        cards: data.cards,
+        formatCounts: data.formatCounts,
+        bulkDataUpdated: data.bulkDataUpdated,
+      });
       return true;
     } catch (error) {
       console.warn('Failed to load card data:', error instanceof Error ? error.message : String(error));

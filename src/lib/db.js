@@ -1,30 +1,28 @@
 import { openDB } from 'idb';
 
-/** @type {Awaited<ReturnType<typeof openDB>> | undefined} */
 let db;
 
 async function getDB() {
   if (!db) {
-    db = await openDB('mtg-cache', 2, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains('formats')) {
-          db.createObjectStore('formats');
+    db = await openDB('mtg-cache', 3, {
+      upgrade(database) {
+        for (const name of [...database.objectStoreNames]) {
+          database.deleteObjectStore(name);
         }
-        if (!db.objectStoreNames.contains('cards')) {
-          db.createObjectStore('cards');
-        }
+        database.createObjectStore('data');
       },
     });
   }
   return db;
 }
 
-/** @param {any[]} allCards */
-export async function cacheCards(allCards) {
+export async function getCachedCardData() {
   const database = await getDB();
-  const tx = database.transaction(['cards'], 'readwrite');
-  const store = tx.objectStore('cards');
-  for (const card of allCards) {
-    await store.put(card, card.id);
-  }
+  return database.get('data', 'cards');
+}
+
+/** @param {{ cards: any[], formatCounts: Record<string, number>, bulkDataUpdated: string }} cardData */
+export async function setCachedCardData(cardData) {
+  const database = await getDB();
+  await database.put('data', cardData, 'cards');
 }
