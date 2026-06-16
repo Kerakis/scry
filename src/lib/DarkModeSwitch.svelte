@@ -12,7 +12,10 @@
   });
 </script>
 
-<label class="flex items-center cursor-pointer">
+<label
+  class="flex items-center cursor-pointer"
+  aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+>
   <div class="relative">
     <input type="checkbox" class="hidden" bind:checked={darkMode} />
     <!-- Sun icon (light mode) -->
