@@ -1,10 +1,13 @@
 <script>
-  import { onMount, tick } from 'svelte';
-  import { gameState } from './lib/gameState.svelte.js';
+  import { onMount, tick, setContext } from 'svelte';
+  import { GameState, GAME_STATE_KEY } from './lib/gameState.svelte.js';
   import FormatSelector from './lib/FormatSelector.svelte';
   import GameBoard from './lib/GameBoard.svelte';
   import HistoryModal from './lib/HistoryModal.svelte';
   import DarkModeSwitch from './lib/DarkModeSwitch.svelte';
+
+  const gameState = new GameState();
+  setContext(GAME_STATE_KEY, gameState);
 
   let game = $state();
   let gameOver = $state();

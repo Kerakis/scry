@@ -199,4 +199,3 @@ export class GameState {
   }
 }
 
-export const gameState = new GameState();
