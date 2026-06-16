@@ -17,6 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, '../public/data');
 const CACHE_DIR = path.join(__dirname, '../.cache');
+const SCRYFALL_CONTACT = process.env.SCRYFALL_CONTACT ?? 'rlupchurch3@gmail.com';
 
 // Map format names to their legality keys in the Scryfall data
 const FORMAT_MAPPING = {
@@ -48,7 +49,7 @@ async function getBulkDataInfo() {
   const response = await fetchWithRetry('https://api.scryfall.com/bulk-data', {
     method: 'GET',
     headers: {
-      'User-Agent': 'Scry/1.0 (rlupchurch3@gmail.com)',
+      'User-Agent': `Scry/1.0 (${SCRYFALL_CONTACT})`,
       Accept: 'application/json',
     },
   });
