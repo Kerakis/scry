@@ -1,5 +1,5 @@
 <script>
-  import { onMount, tick } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { gameState } from './lib/gameState.svelte.js';
   import FormatSelector from './lib/FormatSelector.svelte';
   import GameBoard from './lib/GameBoard.svelte';
@@ -13,6 +13,22 @@
   onMount(async () => {
     await gameState.preload();
   });
+
+  /** @param {KeyboardEvent} event */
+  function handleGameOverKeydown(event) {
+    if (!gameState.gameEnded) return;
+    const key = event.key.toLowerCase();
+    if (gameState.showHistory) {
+      if (key === 'h') gameState.toggleHistory();
+      return;
+    }
+    if (key === 'r') gameState.restartGame();
+    else if (key === 'c') gameState.reselectFormat();
+    else if (key === 'h') gameState.toggleHistory();
+  }
+
+  onMount(() => window.addEventListener('keydown', handleGameOverKeydown));
+  onDestroy(() => window.removeEventListener('keydown', handleGameOverKeydown));
 
   $effect(() => {
     if (gameState.gameEnded) {
