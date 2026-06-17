@@ -1,8 +1,10 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  import { gameState } from './gameState.svelte.js';
+  import { onMount, onDestroy, getContext } from 'svelte';
+  import { GAME_STATE_KEY } from './gameState.svelte.js';
 
   /** @typedef {import('./cardUtils.js').Card} Card */
+
+  const gameState = getContext(GAME_STATE_KEY);
 
   /** @param {Card} card */
   function cardButtonClass(card) {

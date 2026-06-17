@@ -9,19 +9,23 @@
     "preview": "vite preview",
     "update-cards": "node scripts/update-card-data.js",
     "update-cards:dev": "npm run update-cards && npm run dev",
-    "prebuild": "npm run update-cards"
+    "prebuild": "npm run update-cards",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tailwindcss/postcss": "^4.3.1",
-    "@types/lodash": "^4.17.24",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/svelte": "^5.3.1",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.15",
     "svelte": "^5.56.3",
     "tailwindcss": "^4.3.1",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
   },
   "dependencies": {
-    "idb": "^8.0.3",
-    "lodash": "^4.18.1"
+    "idb": "^8.0.3"
   }
 }
