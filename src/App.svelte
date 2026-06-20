@@ -76,7 +76,10 @@
         ></div>
       </div>
     {:else if gameState.loadError}
-      <div class="flex flex-col items-center mt-20 gap-4 text-center" aria-live="assertive">
+      <div
+        class="flex flex-col items-center mt-20 gap-4 text-center"
+        aria-live="assertive"
+      >
         <p class="text-red-500 font-semibold">{gameState.loadError}</p>
         <button
           class="border border-theme-color rounded-sm h-8 px-6 uppercase font-extrabold text-sm hover:border-dark-gray dark:hover:border-white duration-100"
@@ -103,7 +106,9 @@
             disabled={!gameState.gameEnded}
             onclick={() => gameState.toggleHistory()}
           >
-            <span class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0">
+            <span
+              class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
+            >
               {!gameState.gameEnded ? `Level: ${gameState.level}` : `History`}
             </span>
           </button>
@@ -120,7 +125,9 @@
               : ''}"
             disabled
           >
-            <span class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0">
+            <span
+              class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
+            >
               {gameState.timer === 0
                 ? `Time's Up!`
                 : `00:${gameState.timer.toString().padStart(2, '0')}`}
@@ -134,7 +141,9 @@
             class="w-3/4 border border-theme-color rounded-sm h-8 mt-4 uppercase font-extrabold whitespace-nowrap justify-self-start hover:border-dark-gray dark:hover:border-white duration-100"
             onclick={() => gameState.restartGame()}
           >
-            <span class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0">
+            <span
+              class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
+            >
               Restart Game
             </span>
           </button>
@@ -142,7 +151,9 @@
             class="w-3/4 justify-self-end border border-theme-color rounded-sm h-8 mt-4 uppercase font-extrabold whitespace-nowrap hover:border-dark-gray dark:hover:border-white duration-100"
             onclick={() => gameState.reselectFormat()}
           >
-            <span class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0">
+            <span
+              class="xs:text-xxs text-xs md:text-sm overflow-hidden duration-0"
+            >
               Change Format
             </span>
           </button>
@@ -155,7 +166,7 @@
       <p>
         Made with <span class="font-sans">&#9749;</span> by
         <a
-          href="https://github.com/Kerakis"
+          href="https://www.kerakis.com/"
           target="_blank"
           rel="noopener noreferrer"
         >
