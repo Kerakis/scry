@@ -1,14 +1,14 @@
 {
-  "lastUpdated": "2026-06-16T21:40:49.826Z",
-  "bulkDataUpdated": "2026-06-16T21:03:05.947+00:00",
+  "lastUpdated": "2026-07-01T03:14:36.207Z",
+  "bulkDataUpdated": "2026-07-01T01:30:21.155+00:00",
   "formatCounts": {
-    "Standard": 4430,
-    "Pauper": 10580,
-    "Pioneer": 14360,
-    "Modern": 21994,
-    "Legacy": 30813,
-    "Vintage": 30830
+    "Standard": 4702,
+    "Pauper": 10729,
+    "Pioneer": 14630,
+    "Modern": 22264,
+    "Legacy": 31465,
+    "Vintage": 31483
   },
-  "totalCards": 30848,
-  "fileSize": 14404577
+  "totalCards": 31501,
+  "fileSize": 14710502
 }
