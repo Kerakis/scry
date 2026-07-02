@@ -12,17 +12,6 @@ const cards = [
 ];
 const jsonl = cards.map((c) => JSON.stringify(c)).join('\n') + '\n';
 
-const tmpFiles = [];
-function tmpFile(suffix) {
-  const file = path.join(os.tmpdir(), `bulk-data-reader-${Date.now()}-${suffix}`);
-  tmpFiles.push(file);
-  return file;
-}
-
-afterEach(() => {
-  while (tmpFiles.length) fs.rmSync(tmpFiles.pop(), { force: true });
-});
-
 async function collect(filePath) {
   const out = [];
   for await (const card of readCardObjects(filePath)) out.push(card);
@@ -30,6 +19,17 @@ async function collect(filePath) {
 }
 
 describe('readCardObjects', () => {
+  const tmpFiles = [];
+  function tmpFile(suffix) {
+    const file = path.join(os.tmpdir(), `bulk-data-reader-${Date.now()}-${suffix}`);
+    tmpFiles.push(file);
+    return file;
+  }
+
+  afterEach(() => {
+    while (tmpFiles.length) fs.rmSync(tmpFiles.pop(), { force: true });
+  });
+
   it('reads a gzipped .jsonl.gz file', async () => {
     const file = tmpFile('gz.jsonl.gz');
     fs.writeFileSync(file, zlib.gzipSync(Buffer.from(jsonl)));
@@ -40,5 +40,10 @@ describe('readCardObjects', () => {
     const file = tmpFile('plain.jsonl.gz');
     fs.writeFileSync(file, Buffer.from(jsonl));
     expect(await collect(file)).toEqual(cards);
+  });
+
+  it('rejects cleanly for a missing file instead of leaving an orphaned stream', async () => {
+    const file = tmpFile('missing.jsonl.gz');
+    await expect(collect(file)).rejects.toThrow(/ENOENT/);
   });
 });

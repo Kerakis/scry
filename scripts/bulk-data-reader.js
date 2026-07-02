@@ -18,8 +18,14 @@ function isGzip(filePath) {
 }
 
 export async function* readCardObjects(filePath) {
+  // Check existence/gzip-ness before opening the stream: if this throws
+  // (e.g. ENOENT), no stream has been created yet, so there's nothing left
+  // dangling. Constructing the stream first would leave an orphaned,
+  // listener-less ReadStream whose own async open failure later crashes the
+  // process, even though this function's own error was already handled.
+  const gzip = isGzip(filePath);
   const raw = fs.createReadStream(filePath);
-  const input = isGzip(filePath) ? raw.pipe(zlib.createGunzip()) : raw;
+  const input = gzip ? raw.pipe(zlib.createGunzip()) : raw;
   const rl = readline.createInterface({ input, crlfDelay: Infinity });
   for await (const line of rl) {
     if (!line) continue;
