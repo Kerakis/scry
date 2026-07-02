@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import zlib from 'zlib';
 import { fileURLToPath } from 'url';
+import { readCardObjects } from './bulk-data-reader.js';
 
 const FORMATS = [
   'Standard',
@@ -68,22 +68,28 @@ async function getBulkDataInfo() {
   return oracleCards;
 }
 
+function cacheFilePathFor(bulkInfo) {
+  const cacheFileName = `oracle-cards-${bulkInfo.updated_at.replace(
+    /[:.]/g,
+    '-',
+  )}.jsonl.gz`;
+  return path.join(CACHE_DIR, cacheFileName);
+}
+
 async function getCachedBulkData(bulkInfo) {
   // Create cache directory if it doesn't exist
   await fs.mkdir(CACHE_DIR, { recursive: true });
 
-  const cacheFileName = `oracle-cards-${bulkInfo.updated_at.replace(
-    /[:.]/g,
-    '-',
-  )}.json`;
-  const cacheFilePath = path.join(CACHE_DIR, cacheFileName);
+  const cacheFilePath = cacheFilePathFor(bulkInfo);
 
   try {
     console.log('🔍 Checking for cached data...');
-    const cachedData = await fs.readFile(cacheFilePath, 'utf8');
-    const jsonData = JSON.parse(cachedData);
-    console.log(`✅ Using cached data with ${jsonData.length} cards`);
-    return jsonData;
+    const cards = [];
+    for await (const card of readCardObjects(cacheFilePath)) {
+      cards.push(card);
+    }
+    console.log(`✅ Using cached data with ${cards.length} cards`);
+    return cards;
   } catch (error) {
     console.log('📭 No cached data found, will download fresh data');
     return null;
@@ -97,54 +103,35 @@ async function downloadBulkData(bulkInfo) {
     return cachedData;
   }
 
+  const uri = bulkInfo.jsonl_download_uri;
+  if (!uri) {
+    throw new Error('bulk data has no jsonl_download_uri');
+  }
+
   console.log('⬇️ Downloading bulk data...');
-  const response = await fetchWithRetry(bulkInfo.download_uri);
+  const response = await fetchWithRetry(uri);
 
   if (!response.ok) {
     throw new Error(`Failed to download: ${response.status}`);
   }
 
-  // Get the raw buffer
+  // Get the raw bytes (may be gzip-compressed or already decompressed by
+  // fetch, depending on how the CDN served Content-Encoding)
   const buffer = Buffer.from(await response.arrayBuffer());
   console.log(`📦 Downloaded ${buffer.length} bytes`);
 
-  let jsonData;
+  // Written to disk (not just held as a buffer) because parsing below
+  // streams from this file rather than holding the decompressed JSON in
+  // memory, so a failed write must fail the run rather than be swallowed.
+  const cacheFilePath = cacheFilePathFor(bulkInfo);
+  await fs.writeFile(cacheFilePath, buffer);
+  console.log(`💾 Cached data saved to ${path.basename(cacheFilePath)}`);
 
-  try {
-    // First, try to decompress as gzip
-    console.log('🔓 Attempting gzip decompression...');
-    const decompressed = zlib.gunzipSync(buffer);
-    jsonData = JSON.parse(decompressed.toString());
-    console.log('✅ Successfully decompressed gzipped data');
-  } catch (gzipError) {
-    console.log('⚠️ Gzip decompression failed, trying as plain JSON...');
-    try {
-      // If gzip fails, try parsing as plain JSON
-      jsonData = JSON.parse(buffer.toString());
-      console.log('✅ Successfully parsed as plain JSON');
-    } catch (jsonError) {
-      console.error('❌ Failed to parse as both gzip and plain JSON');
-      console.error('Gzip error:', gzipError.message);
-      console.error('JSON error:', jsonError.message);
-      throw new Error('Unable to parse downloaded data');
-    }
+  const jsonData = [];
+  for await (const card of readCardObjects(cacheFilePath)) {
+    jsonData.push(card);
   }
-
   console.log(`✅ Processed ${jsonData.length} cards`);
-
-  // Cache the data for future use
-  const cacheFileName = `oracle-cards-${bulkInfo.updated_at.replace(
-    /[:.]/g,
-    '-',
-  )}.json`;
-  const cacheFilePath = path.join(CACHE_DIR, cacheFileName);
-
-  try {
-    await fs.writeFile(cacheFilePath, JSON.stringify(jsonData));
-    console.log(`💾 Cached data saved to ${cacheFileName}`);
-  } catch (cacheError) {
-    console.warn('⚠️ Failed to cache data:', cacheError.message);
-  }
 
   return jsonData;
 }
