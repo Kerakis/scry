@@ -19,7 +19,7 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/svelte": "^5.4.2",
     "jsdom": "^30.0.1",
-    "postcss": "^8.5.26",
+    "postcss": "^8.5.28",
     "svelte": "^5.57.0",
     "tailwindcss": "^4.3.2",
     "vite": "^8.2.2",
