@@ -22,8 +22,8 @@
     "postcss": "^8.5.28",
     "svelte": "^5.57.1",
     "tailwindcss": "^4.3.2",
-    "vite": "^8.3.1",
-    "vitest": "^5.0.2"
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
   },
   "dependencies": {
     "idb": "^8.0.3"
